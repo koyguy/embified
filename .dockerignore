@@ -1,0 +1,9 @@
+node_modules
+auth_info
+data
+dist
+.env
+.env.local
+.git
+*.log
+.DS_Store

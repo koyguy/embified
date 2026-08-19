@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "NODE_ENV=production tsx server.ts",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "tsx --test server/*.test.ts"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.18",
@@ -16,7 +17,8 @@
     "pino": "^9.6.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
-    "react-dom": "^19.0.1"
+    "react-dom": "^19.0.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
@@ -25,7 +27,6 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^5.0.4",
-    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
   }

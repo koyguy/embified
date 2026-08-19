@@ -1,5 +1,7 @@
 export type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'other';
 
+export type WaProvider = 'baileys' | 'cloud';
+
 export interface MediaAttachment {
   id: string;
   kind: MediaKind;
@@ -28,6 +30,7 @@ export interface GroupSummary {
   lastAt?: string;
   unread: number;
   messageCount: number;
+  kind?: 'group' | 'dm';
 }
 
 export interface WaStatus {
@@ -35,4 +38,17 @@ export interface WaStatus {
   qr?: string | null;
   me?: { id: string; name?: string } | null;
   error?: string | null;
+  provider: WaProvider;
+  cloudConfigured: boolean;
+  webhookPath: string;
+  webhookUrl?: string;
+  webhookPublicUrl?: string;
+  verifyToken?: string;
+  missingCloud?: string[];
+  hasToken?: boolean;
+  hasPhoneNumberId?: boolean;
+}
+
+export interface AppSettings {
+  provider: WaProvider;
 }

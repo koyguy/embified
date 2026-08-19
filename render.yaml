@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: embified
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WA_PROVIDER
+        value: baileys
+      - key: AUTH_DIR
+        value: /data/auth_info
+      - key: DATA_DIR
+        value: /data/store
+    disk:
+      name: embified-data
+      mountPath: /data
+      sizeGB: 1
