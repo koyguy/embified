@@ -343,3 +343,11 @@ body {
   .app.has-chat .sidebar { display: none; }
   .app:not(.has-chat) .chat { display: none; }
 }
+
+.disk-meter {
+  color: var(--accent, #25d366);
+  text-decoration: none;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.disk-meter:hover { text-decoration: underline; opacity: 1; }

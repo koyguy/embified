@@ -134,3 +134,13 @@ src/                  inbox UI + implementation switcher
 - `WHATSAPP_TOKEN` is a live credential for the Cloud API number.
 - `auth_info/` is a live login for the linked-device number.
 - Use Cloud API if you need a supported, contract-backed integration. Use Baileys if the number is only on the WhatsApp app and you accept unofficial-client risk.
+
+## Always Free 200 GB vault (Oracle)
+
+Embified can meter a **200 GB personal vault** (Always Free story) and keep chats on an attached data volume.
+
+- UI meter + landing: open [`/vault`](/vault) after start
+- JSON: `GET /api/disk`, `GET /api/digest`
+- Attach ~150 GB block volume: see [`scripts/oci-always-free/README.md`](scripts/oci-always-free/README.md)
+- Env: `EMBIFIED_QUOTA_BYTES`, `DATA_DIR`, `AUTH_DIR` (see `.env.example`)
+
