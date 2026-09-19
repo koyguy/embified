@@ -65,6 +65,7 @@ function ProviderSwitch({
 export default function App() {
   const [status, setStatus] = useState<WaStatus>(emptyStatus);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
+  const [diskLabel, setDiskLabel] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState('');
@@ -85,6 +86,15 @@ export default function App() {
     fetch('/api/groups')
       .then((r) => r.json())
       .then((d) => setGroups(d.groups || []))
+      .catch(() => {});
+
+    fetch('/api/disk')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.ok && d.human) {
+          setDiskLabel(`${d.human.vault} of ${d.human.quota}`);
+        }
+      })
       .catch(() => {});
 
     const es = new EventSource('/api/events');
@@ -359,6 +369,11 @@ export default function App() {
         </div>
         <div className="foot">
           <span>{groups.length} saved</span>
+          {diskLabel && (
+            <a className="disk-meter" href="/vault" title="Vault usage">
+              {diskLabel}
+            </a>
+          )}
           <span>{provider === 'cloud' ? 'official · Cloud API' : 'local · linked device'}</span>
         </div>
       </aside>
