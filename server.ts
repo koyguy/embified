@@ -7,6 +7,7 @@ import { getStatus, onEvent, startWhatsApp, switchProvider } from './server/wa.t
 import { handleCloudWebhookGet, handleCloudWebhookPost } from './server/cloud.ts';
 import { publicConfig, saveCloudFile } from './server/cloud-config.ts';
 import type { WaProvider } from './src/types.ts';
+import { getDiskReport } from './server/disk.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
@@ -20,6 +21,7 @@ app.use(
   })
 );
 app.use('/media', express.static(store.getMediaDir(), { maxAge: '7d' }));
+app.use('/public', express.static(path.join(process.cwd(), 'public')));
 
 app.get('/api/whatsapp/webhook', handleCloudWebhookGet);
 app.post('/api/whatsapp/webhook', handleCloudWebhookPost);
@@ -70,6 +72,39 @@ app.post('/api/provider', async (req, res) => {
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'switch failed' });
   }
+});
+
+
+app.get('/api/disk', (_req, res) => {
+  try {
+    res.json(getDiskReport());
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e?.message || 'disk failed' });
+  }
+});
+
+app.get('/api/digest', (_req, res) => {
+  try {
+    const disk = getDiskReport();
+    const groups = store.listGroups();
+    const messageCount = groups.reduce((n, g: any) => n + (Number(g.messageCount) || 0), 0);
+    const groupsWithMessages = groups.filter((g: any) => (Number(g.messageCount) || 0) > 0).length;
+    res.json({
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      groups: groups.length,
+      groupsWithMessages,
+      messageCount,
+      disk,
+      headline: `${groups.length} groups · ${messageCount} messages · ${disk.human.vault} of ${disk.human.quota} vault`,
+    });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e?.message || 'digest failed' });
+  }
+});
+
+app.get('/vault', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'vault.html'));
 });
 
 app.get('/api/groups', (_req, res) => {
