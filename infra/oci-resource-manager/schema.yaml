@@ -1,0 +1,79 @@
+title: "Embified Always Free vault"
+description: "VM + ~150 GB data volume + cloud-init install of embified."
+schemaVersion: 1.1.0
+version: "20260921"
+locale: "en"
+variableGroups:
+  - title: "Placement"
+    variables: [compartment_ocid, region, availability_domain]
+  - title: "Compute"
+    variables: [display_name, shape, ocpus, memory_in_gbs, boot_volume_size_in_gbs, data_volume_size_in_gbs, assign_public_ip]
+  - title: "Access"
+    variables: [ssh_public_key, allowed_ssh_cidr, allowed_http_cidr]
+  - title: "App"
+    variables: [embified_git_url, embified_git_ref]
+variables:
+  compartment_ocid:
+    type: oci:identity:compartment:id
+    title: Compartment
+    required: true
+  region:
+    type: enum
+    title: Region
+    default: ap-hyderabad-1
+    required: true
+    enum: [ap-hyderabad-1, ap-mumbai-1, us-ashburn-1, us-phoenix-1, eu-frankfurt-1, uk-london-1]
+  availability_domain:
+    type: string
+    title: Availability domain (optional)
+    required: false
+    default: ""
+  ssh_public_key:
+    type: string
+    title: SSH public key
+    required: true
+  display_name:
+    type: string
+    title: Display name
+    default: embified-vault
+  shape:
+    type: enum
+    title: Shape
+    default: VM.Standard.A1.Flex
+    enum: [VM.Standard.A1.Flex, VM.Standard.E2.1.Micro]
+  ocpus:
+    type: integer
+    title: OCPUs (Flex)
+    default: 1
+  memory_in_gbs:
+    type: integer
+    title: Memory GB (Flex)
+    default: 6
+  boot_volume_size_in_gbs:
+    type: integer
+    title: Boot volume GB
+    default: 47
+  data_volume_size_in_gbs:
+    type: integer
+    title: Data volume GB
+    default: 150
+  assign_public_ip:
+    type: boolean
+    title: Assign public IP
+    default: true
+  embified_git_url:
+    type: string
+    title: Git URL
+    default: https://github.com/koyguy/embified.git
+  embified_git_ref:
+    type: string
+    title: Git ref
+    default: main
+  allowed_ssh_cidr:
+    type: string
+    title: SSH allow CIDR
+    default: 0.0.0.0/0
+  allowed_http_cidr:
+    type: string
+    title: HTTP allow CIDR
+    default: 0.0.0.0/0
