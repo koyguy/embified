@@ -1,0 +1,11 @@
+[Unit]
+Description=Embified Always Free idle-reclaim shield (one shot)
+After=network-online.target embified.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/embified-idle-shield
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
