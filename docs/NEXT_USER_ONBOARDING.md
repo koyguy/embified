@@ -21,6 +21,19 @@ Do **not** onboard a second person onto an existing public IP/inbox. Give them a
 
 
 
+
+
+## Home box + Cloudflare Tunnel
+
+Run Embified on your own always-on machine (NUC, Pi + SSD, old laptop that never sleeps):
+
+1. Open **`/home-setup`** (or `scripts/home-box/README.md`).
+2. `sudo bash scripts/home-box/install-embified.sh` then `disable-sleep.sh`.
+3. Named tunnel: `sudo bash scripts/home-box/setup-named-tunnel.sh vault.example.com`.
+4. Login at `https://vault.example.com` — Baileys QR and/or Cloud API using that origin.
+
+No Oracle reclaim risk; you own power, disk, and backups.
+
 ## Official Cloud API (no Baileys)
 
 If you will not run an unofficial linked-device client:

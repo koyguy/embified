@@ -172,6 +172,10 @@ app.get('/cloud-setup', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'cloud-setup.html'));
 });
 
+app.get('/home-setup', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'home-setup.html'));
+});
+
 app.get('/api/groups', (_req, res) => {
   res.json({ groups: store.listGroups() });
 });

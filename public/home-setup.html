@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embified — Home box + Cloudflare Tunnel</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1410; --card:#122018; --ink:#e8f5ee; --muted:#8aa897; --accent:#25d366; --line:#1e3328; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: radial-gradient(1200px 600px at 20% -10%, #163528, transparent), var(--bg); color: var(--ink); line-height: 1.55; }
+    main { max-width: 740px; margin: 0 auto; padding: 48px 20px 80px; }
+    .pill { display:inline-block; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); border:1px solid #1f6b3f; background:#10281c; padding:4px 10px; border-radius:999px; }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); line-height:1.15; margin:16px 0 12px; }
+    h2 { font-size:1.1rem; margin:0 0 10px; }
+    .lead { color: var(--muted); font-size:1.05rem; margin-bottom:24px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin:14px 0; }
+    ol, ul { margin:0; padding-left:1.2rem; }
+    li { margin:8px 0; }
+    a.btn { display:inline-block; margin-top:10px; margin-right:8px; background:var(--accent); color:#06210f; font-weight:700; text-decoration:none; padding:10px 16px; border-radius:10px; }
+    a.btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:600; }
+    .fine { color:var(--muted); font-size:13px; margin-top:12px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.92em; }
+    pre { background:#0a1611; border:1px solid var(--line); border-radius:10px; padding:12px; overflow:auto; white-space:pre-wrap; }
+    .nav a { color:var(--muted); text-decoration:none; font-size:13px; }
+    .nav a:hover { color:var(--accent); }
+    .warn { border-left:3px solid #e6b84d; padding-left:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="nav">
+      <a href="/vault">← Vault overview</a> ·
+      <a href="/create-vault">Oracle vault</a> ·
+      <a href="/cloud-setup">Cloud API</a>
+    </div>
+    <span class="pill">Local vault · no cloud reclaim</span>
+    <h1>Home box + Cloudflare Tunnel</h1>
+    <p class="lead">
+      Run Embified on a mini PC, NUC, Pi, or always-on laptop at home.
+      Cloudflare Tunnel gives you a public HTTPS URL without opening ports on your router — required for Meta Cloud API webhooks, optional for Baileys-only.
+    </p>
+
+    <div class="card warn">
+      The machine must <strong>never sleep</strong>. Disable suspend/hibernate, keep it plugged in, and prefer an SSD for Baileys session + media.
+      This path avoids Oracle idle reclaim, but you own power, disk, and backups.
+    </div>
+
+    <div class="card">
+      <h2>1 · Hardware</h2>
+      <ul>
+        <li>Any always-on Linux box (Ubuntu 22.04+ recommended). Raspberry Pi 4/5 with 4–8 GB + USB SSD works.</li>
+        <li>Skip flaky SD cards as the only store — put <code>DATA_DIR</code> / <code>AUTH_DIR</code> on SSD.</li>
+        <li>Optional: Tailscale for private admin SSH; Tunnel still handles public HTTPS.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>2 · Install Embified</h2>
+<pre>curl -fsSL https://raw.githubusercontent.com/koyguy/embified/main/scripts/home-box/install-embified.sh | bash
+# or, from a clone:
+sudo bash scripts/home-box/install-embified.sh</pre>
+      <p class="fine">Installs Node 22, clones to <code>/opt/embified</code>, creates systemd <code>embified.service</code>, sets a vault password prompt, binds to localhost:80 by default (Tunnel terminates HTTPS).</p>
+    </div>
+
+    <div class="card">
+      <h2>3 · Cloudflare Tunnel</h2>
+      <p class="fine" style="margin-top:0"><strong>Named tunnel (stable hostname — preferred)</strong></p>
+<pre>sudo bash scripts/home-box/install-cloudflared.sh
+sudo bash scripts/home-box/setup-named-tunnel.sh your-subdomain.example.com</pre>
+      <p class="fine">Needs a free Cloudflare account + a domain on Cloudflare DNS. Points the hostname at <code>http://127.0.0.1:80</code>.</p>
+      <p class="fine"><strong>Quick tunnel (testing only — URL changes on restart)</strong></p>
+<pre>sudo bash scripts/home-box/start-quick-tunnel.sh</pre>
+    </div>
+
+    <div class="card">
+      <h2>4 · Connect WhatsApp</h2>
+      <ol>
+        <li>Open <code>https://&lt;your-tunnel-host&gt;/login</code> with the vault password.</li>
+        <li><strong>Baileys:</strong> choose Linked device and scan QR (no public webhook required).</li>
+        <li><strong>Cloud API:</strong> follow <a href="/cloud-setup" style="color:var(--accent)">/cloud-setup</a>; paste the tunnel origin as the public HTTPS origin.</li>
+      </ol>
+      <a class="btn" href="/">Open inbox (this host)</a>
+      <a class="btn secondary" href="/cloud-setup">Cloud API guide</a>
+    </div>
+
+    <div class="card">
+      <h2>vs Oracle Always Free</h2>
+      <ul>
+        <li><strong>Home box:</strong> no OCI reclaim, your disk, your power bill, you handle backups.</li>
+        <li><strong>Oracle:</strong> free remote VM + ~200 GB story; capacity + idle policy apply — see idle reclaim shield.</li>
+      </ul>
+      <a class="btn secondary" href="/create-vault">Create Oracle vault instead</a>
+    </div>
+  </main>
+</body>
+</html>
