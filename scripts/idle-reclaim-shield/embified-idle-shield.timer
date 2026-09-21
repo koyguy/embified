@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Embified idle-reclaim shield every 6 hours
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+AccuracySec=5min
+Persistent=true
+Unit=embified-idle-shield.service
+
+[Install]
+WantedBy=timers.target
