@@ -1,0 +1,15 @@
+[Unit]
+Description=Embified Cloudflare quick tunnel (HTTPS for Cloud API webhooks)
+After=network-online.target embified.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=EMBIFIED_TUNNEL_TARGET=http://127.0.0.1:80
+ExecStart=/usr/bin/cloudflared tunnel --url ${EMBIFIED_TUNNEL_TARGET} --no-autoupdate
+Restart=always
+RestartSec=5
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
