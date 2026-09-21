@@ -73,6 +73,7 @@ export default function App() {
   const [token, setToken] = useState('');
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [appSecret, setAppSecret] = useState('');
+  const [webhookPublicUrl, setWebhookPublicUrl] = useState('');
   const [savingCloud, setSavingCloud] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
@@ -173,12 +174,14 @@ export default function App() {
           token: token.trim() || undefined,
           phoneNumberId: phoneNumberId.trim() || undefined,
           appSecret: appSecret.trim() || undefined,
+          webhookPublicUrl: webhookPublicUrl.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (data.status) setStatus(data.status);
       setToken('');
       setAppSecret('');
+      setWebhookPublicUrl('');
     } catch {
       /* status stream will catch up */
     } finally {
@@ -239,8 +242,8 @@ export default function App() {
           ) : (
             <>
               <p>
-                Official <strong>WhatsApp Cloud API</strong>. Meta POSTs inbound 1:1 and group
-                messages to this server. The number must be a Cloud API / Official Business Account
+                Official <strong>WhatsApp Cloud API</strong> (no Baileys). Meta POSTs inbound 1:1 and group
+                messages to this server. Need HTTPS? See <a href="/cloud-setup">/cloud-setup</a>. The number must be a Cloud API / Official Business Account
                 number — not a regular WhatsApp Business app login.
               </p>
               {status.error && (
@@ -281,6 +284,17 @@ export default function App() {
                     placeholder="WHATSAPP_APP_SECRET"
                     value={appSecret}
                     onChange={(e) => setAppSecret(e.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Public HTTPS origin (Cloudflare Tunnel URL)
+                  <input
+                    type="url"
+                    autoComplete="off"
+                    placeholder={status.webhookPublicUrl || 'https://your-tunnel.example.com'}
+                    value={webhookPublicUrl}
+                    onChange={(e) => setWebhookPublicUrl(e.target.value)}
                   />
                 </label>
                 <button type="submit" className="primary" disabled={savingCloud}>
