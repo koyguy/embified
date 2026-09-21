@@ -168,6 +168,10 @@ app.get('/create-vault', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'create-vault.html'));
 });
 
+app.get('/cloud-setup', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'cloud-setup.html'));
+});
+
 app.get('/api/groups', (_req, res) => {
   res.json({ groups: store.listGroups() });
 });

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embified — Official Cloud API setup</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1410; --card:#122018; --ink:#e8f5ee; --muted:#8aa897; --accent:#25d366; --line:#1e3328; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: radial-gradient(1200px 600px at 20% -10%, #163528, transparent), var(--bg); color: var(--ink); line-height: 1.55; }
+    main { max-width: 740px; margin: 0 auto; padding: 48px 20px 80px; }
+    .pill { display:inline-block; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); border:1px solid #1f6b3f; background:#10281c; padding:4px 10px; border-radius:999px; }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); line-height:1.15; margin:16px 0 12px; }
+    h2 { font-size:1.1rem; margin:0 0 10px; }
+    .lead { color: var(--muted); font-size:1.05rem; margin-bottom:24px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin:14px 0; }
+    ol, ul { margin:0; padding-left:1.2rem; }
+    li { margin:8px 0; }
+    a.btn { display:inline-block; margin-top:10px; margin-right:8px; background:var(--accent); color:#06210f; font-weight:700; text-decoration:none; padding:10px 16px; border-radius:10px; }
+    a.btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:600; }
+    .fine { color:var(--muted); font-size:13px; margin-top:12px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.92em; }
+    pre { background:#0a1611; border:1px solid var(--line); border-radius:10px; padding:12px; overflow:auto; white-space:pre-wrap; }
+    .nav a { color:var(--muted); text-decoration:none; font-size:13px; }
+    .nav a:hover { color:var(--accent); }
+    .warn { border-left:3px solid #e6b84d; padding-left:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="nav"><a href="/vault">← Vault overview</a> · <a href="/create-vault">Create vault</a></div>
+    <span class="pill">Official path · no Baileys</span>
+    <h1>WhatsApp Cloud API setup</h1>
+    <p class="lead">
+      Use this when you will not run an unofficial linked-device client.
+      Meta hosts the phone number; Embified only receives HTTPS webhooks into your local vault.
+    </p>
+    <div class="card warn">
+      Meta requires a <strong>public HTTPS</strong> callback. A raw Always Free IP on port 80 is not enough.
+      Put Cloudflare Tunnel (or any reverse proxy with a cert) in front of Embified, then paste that origin into the inbox Cloud API form.
+    </div>
+    <div class="card">
+      <h2>1 · Meta developer app</h2>
+      <ol>
+        <li>Create an app at <a href="https://developers.facebook.com/" style="color:var(--accent)">developers.facebook.com</a> and add the <strong>WhatsApp</strong> product.</li>
+        <li>Attach a Cloud API phone number (Business Platform — not a normal “linked devices” session).</li>
+        <li>Copy the <strong>access token</strong> and the <strong>Phone number ID</strong>.</li>
+        <li>Invent a verify token, or let Embified generate one when you switch to Cloud API.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>2 · HTTPS in front of your vault</h2>
+      <p class="fine" style="margin-top:0">On the vault VM:</p>
+<pre>sudo bash /opt/embified/scripts/cloud-api-https/install-cloudflared.sh
+sudo bash /opt/embified/scripts/cloud-api-https/start-quick-tunnel.sh</pre>
+      <p class="fine">
+        Quick tunnels print a <code>https://*.trycloudflare.com</code> URL (changes if the tunnel restarts).
+        For a stable hostname, create a named Cloudflare Tunnel pointed at <code>http://127.0.0.1:80</code>.
+      </p>
+    </div>
+    <div class="card">
+      <h2>3 · Connect Embified</h2>
+      <ol>
+        <li>Open the inbox, choose <strong>Official Cloud API</strong>.</li>
+        <li>Paste access token + phone number ID.</li>
+        <li>Paste the tunnel <strong>origin</strong> (no path) into <em>Public HTTPS origin</em>.</li>
+        <li>Copy the shown verify token and full callback URL into Meta → WhatsApp → Configuration.</li>
+        <li>Subscribe to <code>messages</code>. For official groups also subscribe to the group fields Meta lists for your app.</li>
+      </ol>
+      <a class="btn" href="/">Open inbox</a>
+      <a class="btn secondary" href="/create-vault">Create a new vault first</a>
+    </div>
+    <div class="card">
+      <h2>Limits (honest)</h2>
+      <ul>
+        <li>1:1 customer chats work on a standard Cloud API number.</li>
+        <li>Official group archive needs an Official Business Account and Groups API eligibility.</li>
+        <li>Baileys remains available for regular app numbers already in groups — with unofficial-client risk.</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>

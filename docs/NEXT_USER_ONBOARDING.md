@@ -19,6 +19,19 @@ Do **not** onboard a second person onto an existing public IP/inbox. Give them a
 
 
 
+
+
+## Official Cloud API (no Baileys)
+
+If you will not run an unofficial linked-device client:
+
+1. Open **`/cloud-setup`** on the vault (public guide).
+2. Put HTTPS in front of the VM (`scripts/cloud-api-https/` — Cloudflare Tunnel).
+3. In the inbox, switch to **Official Cloud API**, paste token + phone number ID + public HTTPS origin.
+4. Configure Meta’s webhook to the shown callback URL and verify token.
+
+1:1 chats work on a standard Cloud API number. Official groups need OBA / Groups API eligibility.
+
 ## Idle reclaim shield (Always Free)
 
 Oracle may reclaim Always Free VMs that look idle. After the vault is up:
