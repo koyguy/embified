@@ -155,7 +155,7 @@ sudo install -d -m 700 /etc/embified
 echo 'EMBIFIED_AUTH_PASSWORD=your-strong-password' | sudo tee /etc/embified/auth.env
 sudo chmod 600 /etc/embified/auth.env
 sudo systemctl restart embified</pre>
-        <p class="fine">Then open <code>http://&lt;public_ip&gt;/vault</code> and <code>http://&lt;public_ip&gt;/login</code>. Link WhatsApp from the inbox.</p>
+        <p class="fine">Then open <code>http://&lt;public_ip&gt;/vault</code> and <code>http://&lt;public_ip&gt;/login</code>. Link WhatsApp from the inbox. Prefer official Cloud API (no Baileys)? See <a href="/cloud-setup" style="color:var(--accent)">/cloud-setup</a> after the VM is up.</p>
         <pre id="tfvars-preview"></pre>
         <button type="button" class="btn" id="dl-tfvars">Download terraform.tfvars</button>
         <button type="button" class="btn secondary" id="back-2">Back</button>
