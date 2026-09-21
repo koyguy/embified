@@ -17,6 +17,19 @@ import {
   signSession,
 } from './server/auth.ts';
 
+
+import fs from 'fs';
+
+function readIdleShieldStamp() {
+  try {
+    const stampPath = process.env.EMBIFIED_SHIELD_STAMP || '/var/lib/embified/idle-shield-last.json';
+    return JSON.parse(fs.readFileSync(stampPath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
 
@@ -134,6 +147,7 @@ app.get('/api/digest', (_req, res) => {
     const groupsWithMessages = groups.filter((g: any) => (Number(g.messageCount) || 0) > 0).length;
     res.json({
       ok: true,
+      idleShield: readIdleShieldStamp(),
       generatedAt: new Date().toISOString(),
       groups: groups.length,
       groupsWithMessages,

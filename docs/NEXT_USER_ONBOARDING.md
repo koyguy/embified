@@ -17,6 +17,20 @@ Do **not** onboard a second person onto an existing public IP/inbox. Give them a
 
 
 
+
+
+## Idle reclaim shield (Always Free)
+
+Oracle may reclaim Always Free VMs that look idle. After the vault is up:
+
+```bash
+sudo bash /opt/embified/scripts/idle-reclaim-shield/install.sh
+```
+
+Resource Manager cloud-init installs this automatically. Confirm with `systemctl list-timers | grep embified-idle` and `cat /var/lib/embified/idle-shield-last.json`.
+
+See [`scripts/idle-reclaim-shield/README.md`](../scripts/idle-reclaim-shield/README.md).
+
 ## Control plane (browser)
 
 On any running Embified node, open **`/create-vault`** for the guided flow:

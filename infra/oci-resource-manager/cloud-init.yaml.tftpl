@@ -101,3 +101,4 @@ runcmd:
   - cd /opt/embified && npm ci && npm run build
   - systemctl daemon-reload
   - systemctl enable --now embified
+  - bash /opt/embified/scripts/idle-reclaim-shield/install.sh
