@@ -13,6 +13,19 @@ Each user gets **their own** Oracle Always Free tenancy + VM + disk. Embified do
 
 Do **not** onboard a second person onto an existing public IP/inbox. Give them a fresh node.
 
+
+
+## Provision via Resource Manager
+
+Preferred for a greenfield tenancy: use the Terraform stack in [`infra/oci-resource-manager/`](../infra/oci-resource-manager/).
+
+1. Zip that folder and create an **OCI Resource Manager** stack (see the folder README).
+2. Apply → note `public_ip`.
+3. Wait for cloud-init, then set `EMBIFIED_AUTH_PASSWORD` in `/etc/embified/auth.env` **before** sharing the IP.
+4. Open `/vault` (public) and `/login` (inbox). Link WhatsApp as usual.
+
+Manual console steps below remain the fallback when ORM is unavailable.
+
 ## Prerequisites (user brings)
 
 1. Email + phone for **Oracle Cloud Free Tier** signup: https://www.oracle.com/cloud/free/
