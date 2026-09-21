@@ -144,3 +144,18 @@ Embified can meter a **200 GB personal vault** (Always Free story) and keep chat
 - Attach ~150 GB block volume: see [`scripts/oci-always-free/README.md`](scripts/oci-always-free/README.md)
 - Env: `EMBIFIED_QUOTA_BYTES`, `DATA_DIR`, `AUTH_DIR` (see `.env.example`)
 
+
+## Auth wall (before sharing a public IP)
+
+Set a vault password so the inbox and APIs require a session cookie:
+
+```bash
+# systemd drop-in or Environment=
+EMBIFIED_AUTH_PASSWORD='your-long-password'
+```
+
+- `/login` — password form
+- `/vault` and `/health` stay public
+- `/`, `/api/*` (except WhatsApp webhooks), and `/media` require auth
+
+Logout: `POST /auth/logout` or open `/auth/logout`.
