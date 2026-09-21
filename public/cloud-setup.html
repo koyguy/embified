@@ -28,7 +28,7 @@
 </head>
 <body>
   <main>
-    <div class="nav"><a href="/vault">← Vault overview</a> · <a href="/create-vault">Create vault</a></div>
+    <div class="nav"><a href="/vault">← Vault overview</a> · <a href="/create-vault">Create vault</a> · <a href="/home-setup">Home box</a></div>
     <span class="pill">Official path · no Baileys</span>
     <h1>WhatsApp Cloud API setup</h1>
     <p class="lead">
@@ -51,7 +51,8 @@
     <div class="card">
       <h2>2 · HTTPS in front of your vault</h2>
       <p class="fine" style="margin-top:0">On the vault VM:</p>
-<pre>sudo bash /opt/embified/scripts/cloud-api-https/install-cloudflared.sh
+<pre>sudo bash /opt/embified/scripts/home-box/install-cloudflared.sh
+# (or scripts/cloud-api-https/ on an Oracle vault)
 sudo bash /opt/embified/scripts/cloud-api-https/start-quick-tunnel.sh</pre>
       <p class="fine">
         Quick tunnels print a <code>https://*.trycloudflare.com</code> URL (changes if the tunnel restarts).
