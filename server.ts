@@ -7,7 +7,15 @@ import { getStatus, onEvent, startWhatsApp, switchProvider } from './server/wa.t
 import { handleCloudWebhookGet, handleCloudWebhookPost } from './server/cloud.ts';
 import { publicConfig, saveCloudFile } from './server/cloud-config.ts';
 import type { WaProvider } from './src/types.ts';
-import { getDiskReport } from './server/disk.ts';
+import { getQuotaBytes } from './server/disk.ts';
+import {
+  authEnabled,
+  checkPassword,
+  clearSessionCookie,
+  requireAuth,
+  sessionCookieValue,
+  signSession,
+} from './server/auth.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
@@ -20,8 +28,43 @@ app.use(
     },
   })
 );
-app.use('/media', express.static(store.getMediaDir(), { maxAge: '7d' }));
 app.use('/public', express.static(path.join(process.cwd(), 'public')));
+
+app.use(express.urlencoded({ extended: false }));
+
+app.get('/login', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'login.html'));
+});
+
+app.post('/auth/login', (req, res) => {
+  if (!authEnabled()) {
+    res.redirect('/');
+    return;
+  }
+  const password = String(req.body?.password ?? '');
+  const next = typeof req.body?.next === 'string' && req.body.next.startsWith('/') ? req.body.next : '/';
+  if (!checkPassword(password)) {
+    res.redirect('/login?e=1');
+    return;
+  }
+  res.setHeader('Set-Cookie', sessionCookieValue(signSession()));
+  res.redirect(next);
+});
+
+app.post('/auth/logout', (_req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookie());
+  res.redirect('/login');
+});
+
+app.get('/auth/logout', (_req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookie());
+  res.redirect('/login');
+});
+
+app.use(requireAuth);
+
+app.use('/media', express.static(store.getMediaDir(), { maxAge: '7d' }));
+
 
 app.get('/api/whatsapp/webhook', handleCloudWebhookGet);
 app.post('/api/whatsapp/webhook', handleCloudWebhookPost);
@@ -77,7 +120,7 @@ app.post('/api/provider', async (req, res) => {
 
 app.get('/api/disk', (_req, res) => {
   try {
-    res.json(getDiskReport());
+    res.json(getQuotaBytes());
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e?.message || 'disk failed' });
   }
@@ -85,7 +128,7 @@ app.get('/api/disk', (_req, res) => {
 
 app.get('/api/digest', (_req, res) => {
   try {
-    const disk = getDiskReport();
+    const disk = getQuotaBytes();
     const groups = store.listGroups();
     const messageCount = groups.reduce((n, g: any) => n + (Number(g.messageCount) || 0), 0);
     const groupsWithMessages = groups.filter((g: any) => (Number(g.messageCount) || 0) > 0).length;
@@ -166,6 +209,7 @@ async function start() {
   app.listen(PORT, '0.0.0.0', async () => {
     console.log(`Embified running on http://0.0.0.0:${PORT}`);
     console.log('Choose Linked device (Baileys) or Cloud API in the app.');
+    console.log(authEnabled() ? 'Auth wall: ON (EMBIFIED_AUTH_PASSWORD set)' : 'Auth wall: OFF');
     try {
       await startWhatsApp();
     } catch (e: any) {
