@@ -1,0 +1,103 @@
+#cloud-config
+package_update: true
+packages:
+  - git
+  - curl
+  - ca-certificates
+  - jq
+  - parted
+  - e2fsprogs
+
+write_files:
+  - path: /usr/local/sbin/embified-mount-data
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      MOUNT_POINT=/data
+      STORE_DIR=/data/store
+      AUTH_DIR=/data/auth_info
+      for _ in $(seq 1 60); do
+        mapfile -t CANDIDATES < <(lsblk -dn -o NAME,TYPE,MOUNTPOINT | awk '$2=="disk" && $3=="" {print $1}')
+        if [[ $${{#CANDIDATES[@]}} -gt 0 ]]; then break; fi
+        sleep 5
+      done
+      if [[ $${{#CANDIDATES[@]}} -eq 0 ]]; then
+        echo "embified-mount-data: no data disk found after wait"
+        mkdir -p "$STORE_DIR" "$AUTH_DIR"
+        exit 0
+      fi
+      DEV="/dev/$${CANDIDATES[-1]}"
+      PART="$DEV"
+      if [[ -b "$${DEV}1" ]]; then PART="$${DEV}1"; fi
+      FSTYPE=$(lsblk -dn -o FSTYPE "$PART" 2>/dev/null || true)
+      if [[ -z "$${FSTYPE:-}" ]]; then
+        if [[ "$PART" == "$DEV" ]]; then
+          parted -s "$DEV" mklabel gpt mkpart primary ext4 1MiB 100%
+          sleep 2
+          PART="$${DEV}1"
+          [[ -b "$PART" ]] || PART="$DEV"
+        fi
+        mkfs.ext4 -F -L embified-data "$PART"
+      fi
+      mkdir -p "$MOUNT_POINT"
+      UUID=$(blkid -s UUID -o value "$PART")
+      mountpoint -q "$MOUNT_POINT" || mount "$PART" "$MOUNT_POINT"
+      grep -q "$UUID" /etc/fstab 2>/dev/null || echo "UUID=$UUID $MOUNT_POINT ext4 defaults,nofail 0 2" >> /etc/fstab
+      mkdir -p "$STORE_DIR" "$AUTH_DIR"
+      chmod 755 "$STORE_DIR" "$AUTH_DIR"
+      echo "embified-mount-data: $PART -> $MOUNT_POINT"
+
+  - path: /usr/local/sbin/embified-update
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      cd /opt/embified
+      git fetch origin
+      git reset --hard "origin/${embified_git_ref}"
+      npm ci
+      npm run build
+      systemctl restart embified
+      systemctl --no-pager --full status embified | head -30
+
+  - path: /etc/systemd/system/embified.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Embified WhatsApp vault
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=/opt/embified
+      Environment=NODE_ENV=production
+      Environment=PORT=80
+      Environment=WA_PROVIDER=baileys
+      Environment=DATA_DIR=/data/store
+      Environment=AUTH_DIR=/data/auth_info
+      Environment=EMBIFIED_QUOTA_BYTES=214748364800
+      EnvironmentFile=-/etc/embified/auth.env
+      ExecStart=/usr/bin/npm start
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/embified/auth.env
+    permissions: "0600"
+    content: |
+      # Set EMBIFIED_AUTH_PASSWORD=... then: systemctl restart embified
+
+runcmd:
+  - mkdir -p /etc/embified /opt
+  - /usr/local/sbin/embified-mount-data
+  - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  - apt-get install -y nodejs
+  - rm -rf /opt/embified
+  - git clone --branch ${embified_git_ref} --depth 1 ${embified_git_url} /opt/embified
+  - cd /opt/embified && npm ci && npm run build
+  - systemctl daemon-reload
+  - systemctl enable --now embified
