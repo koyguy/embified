@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Embified — Create your vault</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1410;
+        --card: #122018;
+        --ink: #e8f5ee;
+        --muted: #8aa897;
+        --accent: #25d366;
+        --line: #1e3328;
+        --danger: #f07178;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: radial-gradient(1200px 600px at 20% -10%, #163528, transparent), var(--bg);
+        color: var(--ink);
+        line-height: 1.5;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
+      .pill {
+        display: inline-block; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase;
+        color: var(--accent); border: 1px solid #1f6b3f; background: #10281c; padding: 4px 10px; border-radius: 999px;
+      }
+      h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.15; margin: 16px 0 12px; }
+      h2 { font-size: 1.15rem; margin: 0 0 12px; }
+      .lead { color: var(--muted); font-size: 1.05rem; margin-bottom: 28px; }
+      .card {
+        background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+        margin: 14px 0;
+      }
+      .steps { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 20px; padding: 0; list-style: none; }
+      .steps li {
+        font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+        padding: 4px 10px;
+      }
+      .steps li.on { color: #06210f; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+      .steps li.done { color: var(--accent); border-color: #1f6b3f; }
+      label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+      input, select, textarea {
+        width: 100%; background: #0a1611; border: 1px solid var(--line); color: var(--ink);
+        border-radius: 10px; padding: 10px 12px; font: inherit;
+      }
+      textarea { min-height: 96px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+      a.btn, button.btn {
+        display: inline-block; margin-top: 12px; margin-right: 8px; background: var(--accent); color: #06210f;
+        font-weight: 700; text-decoration: none; padding: 10px 16px; border-radius: 10px; border: 0; cursor: pointer;
+        font: inherit;
+      }
+      a.btn.secondary, button.btn.secondary {
+        background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 600;
+      }
+      .fine { color: var(--muted); font-size: 13px; margin-top: 14px; }
+      .err { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em;
+      }
+      pre {
+        background: #0a1611; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+        overflow: auto; white-space: pre-wrap; word-break: break-word;
+      }
+      ol { margin: 0; padding-left: 1.2rem; }
+      li { margin: 8px 0; }
+      .hidden { display: none; }
+      .nav { margin-bottom: 8px; }
+      .nav a { color: var(--muted); text-decoration: none; font-size: 13px; }
+      .nav a:hover { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="nav"><a href="/vault">← Back to vault overview</a></div>
+      <span class="pill">Control plane · BYO Always Free</span>
+      <h1>Create your own Embified vault</h1>
+      <p class="lead">
+        One person → one Oracle Free tenancy → one vault. We never put a second inbox on someone else’s IP.
+        OCI OAuth comes later; for now you sign up at Oracle, then paste tenancy details and an SSH key.
+      </p>
+
+      <ol class="steps" id="stepper">
+        <li class="on" data-s="1">1 · Oracle signup</li>
+        <li data-s="2">2 · Tenancy + SSH</li>
+        <li data-s="3">3 · Provision</li>
+      </ol>
+
+      <section class="card" id="step-1">
+        <h2>Open an Oracle Always Free tenancy</h2>
+        <p class="fine" style="margin-top:0">
+          Always Free still needs a card in most regions; you are not charged if you stay within free limits.
+          Pick your <strong>home region</strong> carefully — Always Free compute is home-region only.
+        </p>
+        <ol>
+          <li>Create an account at Oracle Cloud Free Tier.</li>
+          <li>Finish email + payment verification until the tenancy is active (not stuck in “verifying”).</li>
+          <li>In the console, copy your <strong>compartment OCID</strong> (root compartment is fine for a personal vault).</li>
+          <li>Generate an SSH keypair if you do not have one (<code>ssh-keygen -t ed25519</code>).</li>
+        </ol>
+        <a class="btn" href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener">Open Oracle Free Tier</a>
+        <button type="button" class="btn secondary" id="to-2">I have a tenancy — continue</button>
+        <p class="fine">Already provisioned? Skip to linking WhatsApp on your VM after cloud-init finishes.</p>
+      </section>
+
+      <section class="card hidden" id="step-2">
+        <h2>Paste tenancy details</h2>
+        <p class="fine" style="margin-top:0">Nothing is uploaded — this stays in your browser and builds a <code>terraform.tfvars</code> file for Resource Manager.</p>
+        <div class="row2">
+          <div>
+            <label for="display_name">Vault display name</label>
+            <input id="display_name" value="embified-vault" autocomplete="off" />
+          </div>
+          <div>
+            <label for="region">Home region</label>
+            <select id="region">
+              <option value="ap-hyderabad-1">ap-hyderabad-1</option>
+              <option value="ap-mumbai-1">ap-mumbai-1</option>
+              <option value="us-ashburn-1">us-ashburn-1</option>
+              <option value="us-phoenix-1">us-phoenix-1</option>
+              <option value="eu-frankfurt-1">eu-frankfurt-1</option>
+              <option value="uk-london-1">uk-london-1</option>
+            </select>
+          </div>
+        </div>
+        <label for="compartment_ocid">Compartment OCID</label>
+        <input id="compartment_ocid" placeholder="ocid1.compartment.oc1.." autocomplete="off" spellcheck="false" />
+        <label for="tenancy_ocid">Tenancy OCID <span style="opacity:.7">(optional, for your notes)</span></label>
+        <input id="tenancy_ocid" placeholder="ocid1.tenancy.oc1.." autocomplete="off" spellcheck="false" />
+        <label for="ssh_public_key">SSH public key</label>
+        <textarea id="ssh_public_key" placeholder="ssh-ed25519 AAAA… comment" spellcheck="false"></textarea>
+        <div class="err" id="form-err">Check compartment OCID and SSH public key.</div>
+        <button type="button" class="btn secondary" id="back-1">Back</button>
+        <button type="button" class="btn" id="to-3">Generate provision files</button>
+      </section>
+
+      <section class="card hidden" id="step-3">
+        <h2>Provision with Resource Manager</h2>
+        <ol>
+          <li>Download <code>terraform.tfvars</code> (button below).</li>
+          <li>On GitHub, grab <code>infra/oci-resource-manager/</code> from
+            <a href="https://github.com/koyguy/embified/tree/main/infra/oci-resource-manager" style="color:var(--accent)">koyguy/embified</a>
+            — zip that folder (tfvars at the zip root next to the <code>.tf</code> files).</li>
+          <li>OCI Console → <strong>Developer Services</strong> → <strong>Resource Manager</strong> → <strong>Stacks</strong> → Create stack → upload zip → Apply.</li>
+          <li>When Apply finishes, copy <code>public_ip</code>. Wait 5–10 minutes for cloud-init.</li>
+          <li><strong>Before sharing the IP</strong>, SSH in and set the inbox password:</li>
+        </ol>
+        <pre id="auth-snippet">ssh -i &lt;private-key&gt; ubuntu@&lt;public_ip&gt;
+sudo install -d -m 700 /etc/embified
+echo 'EMBIFIED_AUTH_PASSWORD=your-strong-password' | sudo tee /etc/embified/auth.env
+sudo chmod 600 /etc/embified/auth.env
+sudo systemctl restart embified</pre>
+        <p class="fine">Then open <code>http://&lt;public_ip&gt;/vault</code> and <code>http://&lt;public_ip&gt;/login</code>. Link WhatsApp from the inbox.</p>
+        <pre id="tfvars-preview"></pre>
+        <button type="button" class="btn" id="dl-tfvars">Download terraform.tfvars</button>
+        <button type="button" class="btn secondary" id="back-2">Back</button>
+        <a class="btn secondary" href="/vault">Done</a>
+        <p class="fine">OAuth “Connect Oracle” is not wired yet — paste OCIDs manually for this MVP. Idle Always Free VMs can still be reclaimed; keep light traffic or a digest ping.</p>
+      </section>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let tfvarsText = '';
+
+      function show(step) {
+        [1, 2, 3].forEach((n) => {
+          $('step-' + n).classList.toggle('hidden', n !== step);
+        });
+        document.querySelectorAll('#stepper li').forEach((li) => {
+          const s = Number(li.getAttribute('data-s'));
+          li.classList.toggle('on', s === step);
+          li.classList.toggle('done', s < step);
+        });
+      }
+
+      function escTf(s) {
+        return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      }
+
+      function buildTfvars() {
+        const compartment = $('compartment_ocid').value.trim();
+        const region = $('region').value;
+        const display = $('display_name').value.trim() || 'embified-vault';
+        const ssh = $('ssh_public_key').value.trim();
+        const tenancy = $('tenancy_ocid').value.trim();
+        const err = $('form-err');
+        if (!compartment.startsWith('ocid1.') || !ssh.startsWith('ssh-')) {
+          err.style.display = 'block';
+          return false;
+        }
+        err.style.display = 'none';
+        const lines = [
+          '# Generated by Embified /create-vault (browser-only; not uploaded).',
+          tenancy ? '# tenancy_ocid = "' + escTf(tenancy) + '"' : '# tenancy_ocid = (optional note)',
+          'compartment_ocid = "' + escTf(compartment) + '"',
+          'region           = "' + escTf(region) + '"',
+          'display_name     = "' + escTf(display) + '"',
+          'ssh_public_key   = "' + escTf(ssh) + '"',
+          '',
+          '# Defaults match Always Free–oriented stack:',
+          '# shape = "VM.Standard.A1.Flex"',
+          '# ocpus = 1',
+          '# memory_in_gbs = 6',
+          '# data_volume_size_in_gbs = 150',
+          '',
+        ];
+        tfvarsText = lines.join('\n');
+        $('tfvars-preview').textContent = tfvarsText;
+        return true;
+      }
+
+      $('to-2').onclick = () => show(2);
+      $('back-1').onclick = () => show(1);
+      $('back-2').onclick = () => show(2);
+      $('to-3').onclick = () => { if (buildTfvars()) show(3); };
+      $('dl-tfvars').onclick = () => {
+        if (!tfvarsText && !buildTfvars()) return;
+        const blob = new Blob([tfvarsText], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'terraform.tfvars';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      };
+    </script>
+  </body>
+</html>

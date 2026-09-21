@@ -15,6 +15,19 @@ Do **not** onboard a second person onto an existing public IP/inbox. Give them a
 
 
 
+
+
+## Control plane (browser)
+
+On any running Embified node, open **`/create-vault`** for the guided flow:
+
+1. Oracle Free Tier signup
+2. Paste compartment OCID + SSH public key (browser-only; builds `terraform.tfvars`)
+3. Zip `infra/oci-resource-manager/`, create an OCI Resource Manager stack, Apply
+4. Set `EMBIFIED_AUTH_PASSWORD` before sharing the public IP
+
+OAuth “Connect Oracle” is not available yet — OCIDs are pasted manually.
+
 ## Provision via Resource Manager
 
 Preferred for a greenfield tenancy: use the Terraform stack in [`infra/oci-resource-manager/`](../infra/oci-resource-manager/).

@@ -150,6 +150,10 @@ app.get('/vault', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'vault.html'));
 });
 
+app.get('/create-vault', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'create-vault.html'));
+});
+
 app.get('/api/groups', (_req, res) => {
   res.json({ groups: store.listGroups() });
 });
