@@ -86,7 +86,7 @@ export function clearSessionCookie() {
 }
 
 export function isPublicPath(p: string) {
-  if (p === '/health' || p === '/login' || p === '/vault' || p === '/create-vault' || p === '/cloud-setup') return true;
+  if (p === '/health' || p === '/login' || p === '/vault' || p === '/create-vault' || p === '/cloud-setup' || p === '/home-setup') return true;
   if (p.startsWith('/public/')) return true;
   if (p.startsWith('/auth/')) return true;
   if (p.startsWith('/api/whatsapp/webhook')) return true;
