@@ -1,0 +1,36 @@
+name: Publish ORM stack zip
+
+# Publishes infra/oci-resource-manager as a stable public zip for the
+# "Deploy to Oracle Cloud" button on /start:
+#   https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/oci-resource-manager/**'
+      - '.github/workflows/publish-orm-stack.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build stack zip (Terraform files at zip root)
+        run: |
+          cd infra/oci-resource-manager
+          zip -r -X "$GITHUB_WORKSPACE/embified-oci-stack.zip" . 
+          unzip -l "$GITHUB_WORKSPACE/embified-oci-stack.zip"
+      - name: Upload to rolling release "orm-stack"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view orm-stack >/dev/null 2>&1; then
+            gh release create orm-stack --title "Oracle Resource Manager stack (rolling)" \
+              --notes "Auto-published from infra/oci-resource-manager on main. Used by the Deploy to Oracle Cloud button on /start." \
+              --latest=false
+          fi
+          gh release upload orm-stack embified-oci-stack.zip --clobber

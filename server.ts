@@ -16,6 +16,7 @@ import {
   sessionCookieValue,
   signSession,
 } from './server/auth.ts';
+import { allowRate, appendEvent, readStats, sanitizeEvent } from './server/funnel.ts';
 
 
 import fs from 'fs';
@@ -174,6 +175,46 @@ app.get('/cloud-setup', (_req, res) => {
 
 app.get('/home-setup', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'home-setup.html'));
+});
+
+// Public, gamified onboarding funnel (Oracle quest). Progress lives in the browser.
+// Optional EMBIFIED_SHARE_BASE (e.g. https://embified.com) makes invite links point at a canonical funnel.
+app.get('/start', (_req, res) => {
+  const file = path.join(process.cwd(), 'public', 'start.html');
+  const base = String(process.env.EMBIFIED_SHARE_BASE || '').trim();
+  if (!/^https?:\/\/[A-Za-z0-9.:\/_-]+$/.test(base)) {
+    res.sendFile(file);
+    return;
+  }
+  const html = fs
+    .readFileSync(file, 'utf8')
+    .replace('<meta name="embified-share-base" content="" />', `<meta name="embified-share-base" content="${base}" />`);
+  res.type('html').send(html);
+});
+
+// Anonymous funnel analytics: event + timestamp + random client id (no IP stored).
+app.post('/api/funnel/event', (req, res) => {
+  const key = String(req.ip || req.socket.remoteAddress || 'unknown');
+  if (!allowRate(key)) {
+    res.status(429).json({ ok: false });
+    return;
+  }
+  const ev = sanitizeEvent(req.body);
+  if (!ev) {
+    res.status(400).json({ ok: false });
+    return;
+  }
+  try {
+    appendEvent(ev);
+  } catch {
+    /* analytics must never break the funnel */
+  }
+  res.status(204).end();
+});
+
+// Behind the auth wall: counts per level for the operator.
+app.get('/api/funnel/stats', (_req, res) => {
+  res.json(readStats());
 });
 
 app.get('/api/groups', (_req, res) => {

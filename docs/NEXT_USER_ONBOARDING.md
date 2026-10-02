@@ -57,9 +57,29 @@ Resource Manager cloud-init installs this automatically. Confirm with `systemctl
 
 See [`scripts/idle-reclaim-shield/README.md`](../scripts/idle-reclaim-shield/README.md).
 
+## Customer onboarding funnel — `/start` (send new users here)
+
+Public, mobile-first, gamified quest that takes a new customer from zero to a running vault. Share **`http://<any-vault>/start`** (or set `EMBIFIED_SHARE_BASE=https://your-domain` so invite links point at a canonical host).
+
+| Level | What the user does | XP |
+| --- | --- | --- |
+| 1 | Create Oracle account on Oracle’s site (`signup.cloud.oracle.com`), pick home region | 100 |
+| 2 | Card verification on Oracle’s page — honest explainer (≈US$1 temporary auth, reversed; Always Free not charged) + India/decline troubleshooting | 150 |
+| 3 | Sign in to `cloud.oracle.com` | 50 |
+| 4 | Paste root compartment (= tenancy) OCID | 100 |
+| 5 | SSH key — generated in-browser (Ed25519 via WebCrypto, tweetnacl fallback on plain http; RSA-3072 fallback) or pasted | 100 |
+| 6 | **Deploy to Oracle Cloud** (Resource Manager `stacks/create?zipUrl=…&zipUrlVariables=…` pre-filled with region/compartment/SSH key), paste `public_ip` | 250 |
+| 7 | Set `EMBIFIED_AUTH_PASSWORD` (generated commands) + link WhatsApp via QR | 250 |
+
+- Embified never automates Oracle signup or touches card data — Oracle does verification on its own page.
+- Progress, XP, badges and referral code live in `localStorage` (`embified.start.v1`). `?ref=<code>` is captured and gives +50 XP.
+- Stack zip for the deploy button: `https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip`, republished by `.github/workflows/publish-orm-stack.yml` whenever `infra/oci-resource-manager/` changes.
+- Anonymous analytics: `POST /api/funnel/event` (public; event + timestamp + random client id + optional ref, no IP stored) → `DATA_DIR/funnel-events.jsonl`. Operator view behind auth: **`GET /api/funnel/stats`** (unique clients per event / level completed / referral code).
+- Alternatives remain: `/home-setup`, `/cloud-setup`, classic `/create-vault`.
+
 ## Control plane (browser)
 
-On any running Embified node, open **`/create-vault`** for the guided flow:
+On any running Embified node, open **`/start`** (gamified quest, above) or the classic **`/create-vault`** flow:
 
 1. Oracle Free Tier signup
 2. Paste compartment OCID + SSH public key (browser-only; builds `terraform.tfvars`)
