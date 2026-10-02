@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Embified — Your free 200 GB WhatsApp group vault</title>
+    <meta name="description" content="Never lose WhatsApp group history. Get a free 200 GB vault on your own Oracle Always Free cloud in ~35 minutes — guided, step by step." />
+    <meta name="theme-color" content="#0b1410" />
+    <meta property="og:title" content="Free 200 GB WhatsApp group vault on your own cloud" />
+    <meta property="og:description" content="Never lose group history. Your chats stay on your own server. Guided setup in ~35 minutes." />
+    <meta name="embified-share-base" content="" />
+    <link rel="stylesheet" href="/public/start.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Embified home"><span class="logo">E</span> Embified</a>
+      <div class="xpchip" id="xpchip" title="Your quest progress">
+        <span class="bolt">⚡</span><span id="xp-top">0</span> XP
+        <span class="minibar"><span id="minibar-fill"></span></span>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- HERO -->
+      <section class="hero">
+        <div class="refbanner hidden" id="refbanner">🎁 A friend invited you — you start with <strong>+50 XP</strong>.</div>
+        <span class="pill">Free forever · Your own cloud</span>
+        <h1>Free 200 GB WhatsApp group vault on <span class="hl">your own cloud</span></h1>
+        <p class="lead">Never lose group history again. Every message, photo and voice note is archived on a server only you control — guided step by step, like a game.</p>
+        <div class="cta-row">
+          <button class="btn big" id="cta-main" type="button">Start my free vault →</button>
+          <a class="btn ghost" href="#how">How it works</a>
+        </div>
+        <ul class="trust">
+          <li><strong>₹0</strong><span>per month*</span></li>
+          <li><strong>200 GB</strong><span>storage</span></li>
+          <li><strong>~35 min</strong><span>guided setup</span></li>
+          <li><strong>100%</strong><span>your server</span></li>
+        </ul>
+        <p class="fine">*Runs on Oracle Cloud “Always Free”. Oracle verifies a card at signup; you’re not charged unless you choose to upgrade. <a href="#faq">Details</a></p>
+      </section>
+
+      <!-- HOW -->
+      <section class="how" id="how">
+        <div class="howstep"><span>1</span><div><strong>Get a free cloud</strong><p>Sign up for Oracle Always Free on Oracle’s own site.</p></div></div>
+        <div class="howstep"><span>2</span><div><strong>Launch in one click</strong><p>“Deploy to Oracle Cloud” builds your private vault server.</p></div></div>
+        <div class="howstep"><span>3</span><div><strong>Link WhatsApp</strong><p>Scan a QR like WhatsApp Web. History is archived from then on.</p></div></div>
+      </section>
+
+      <!-- PATHS -->
+      <section id="paths">
+        <h2 class="sec">Choose your path</h2>
+        <div class="paths">
+          <button class="path rec" type="button" data-path="oracle">
+            <span class="tag">Recommended</span>
+            <strong>☁️ Oracle Always Free</strong>
+            <span class="meta">~35 min · Easy · ₹0/month · 200 GB</span>
+            <span class="desc">Your own always-on cloud server. Needs a credit/debit card for Oracle’s identity check (not charged).</span>
+          </button>
+          <button class="path" type="button" data-path="home">
+            <strong>🏠 Home box</strong>
+            <span class="meta">~20 min · Medium · Your own disk</span>
+            <span class="desc">Have a PC, NUC or Pi that’s always on? Run it at home behind a free Cloudflare Tunnel. No card needed.</span>
+          </button>
+          <button class="path" type="button" data-path="cloud">
+            <strong>✅ Official Cloud API</strong>
+            <span class="meta">~60 min · Advanced · Meta business setup</span>
+            <span class="desc">Uses Meta’s official WhatsApp Cloud API instead of a linked device. Needs a host plus Meta verification; groups need eligibility.</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- QUEST -->
+      <section id="quest" class="hidden" aria-live="polite">
+        <div class="questhead card">
+          <div class="qh-row">
+            <div>
+              <div class="rank" id="rank">Newcomer</div>
+              <div class="fine tight"><span id="lvl-label">Level 1 of 7</span> · <span id="time-left">~35 min left</span></div>
+            </div>
+            <div class="xpbig"><span id="xp">0</span><small>/ <span id="xp-max">1000</span> XP</small></div>
+          </div>
+          <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar"><span id="bar-fill"></span></div>
+          <div class="badges" id="badges"></div>
+        </div>
+
+        <ol class="levels" id="levels">
+          <!-- L1 -->
+          <li class="level" data-level="1">
+            <button class="lv-head" type="button"><span class="lv-num">1</span><span class="lv-title">Create your Oracle account</span><span class="lv-xp">+100 XP · ~10 min</span></button>
+            <div class="lv-body">
+              <p>Sign up on <strong>Oracle’s own website</strong> (opens in a new tab). Embified never sees your Oracle password or card.</p>
+              <div class="cta-row">
+                <a class="btn" href="https://signup.cloud.oracle.com/" target="_blank" rel="noopener" data-track="l1_signup">Open Oracle signup ↗</a>
+                <a class="btn ghost" href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener">What’s Always Free? ↗</a>
+              </div>
+              <label for="region">Pick your <strong>Home Region</strong> (choose the same one on Oracle’s form)</label>
+              <select id="region" data-field="region">
+                <option value="ap-hyderabad-1">India South (Hyderabad) — ap-hyderabad-1</option>
+                <option value="ap-mumbai-1">India West (Mumbai) — ap-mumbai-1</option>
+                <option value="ap-singapore-1">Singapore — ap-singapore-1</option>
+                <option value="me-dubai-1">UAE East (Dubai) — me-dubai-1</option>
+                <option value="uk-london-1">UK South (London) — uk-london-1</option>
+                <option value="eu-frankfurt-1">Germany Central (Frankfurt) — eu-frankfurt-1</option>
+                <option value="us-ashburn-1">US East (Ashburn) — us-ashburn-1</option>
+                <option value="us-phoenix-1">US West (Phoenix) — us-phoenix-1</option>
+              </select>
+              <ul class="tips">
+                <li>🌍 <strong>Home region is permanent.</strong> Always Free servers can only be created there — pick the one closest to you.</li>
+                <li>🪪 Use your <strong>real name</strong> and an <strong>address that matches your card’s billing address</strong>.</li>
+                <li>📧 Use an email you check — Oracle sends a verification link that expires.</li>
+                <li>📱 Keep your phone handy for the SMS code.</li>
+                <li>🛡️ Turn off VPNs and ad-blockers during signup; they often trigger rejections.</li>
+                <li>✍️ Remember your <strong>Cloud Account Name</strong> — you need it to sign in.</li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- L2 -->
+          <li class="level" data-level="2">
+            <button class="lv-head" type="button"><span class="lv-num">2</span><span class="lv-title">Pass card verification</span><span class="lv-xp">+150 XP · ~3 min</span></button>
+            <div class="lv-body">
+              <div class="callout">
+                <strong>Why a card?</strong> Oracle uses it only to check you’re a real person. You type it on Oracle’s page — Embified never sees or stores card details.
+              </div>
+              <h4>What to expect</h4>
+              <ul class="tips">
+                <li>💳 Oracle places a <strong>temporary authorization of about US$1</strong> (or the equivalent in your currency) and reverses it right away. Your bank decides how fast it disappears from your statement — usually a few days.</li>
+                <li>🔐 Your bank may show an OTP / 3-D Secure screen. That’s normal.</li>
+                <li>🆓 <strong>Always Free is never charged.</strong> Your card is only charged if you yourself upgrade to Pay As You Go — you don’t need to.</li>
+                <li>✅ Accepted: credit cards, and debit cards that work like credit cards (Visa, Mastercard, Amex). ❌ Not accepted: prepaid, virtual/single-use, or PIN-only debit cards.</li>
+              </ul>
+              <h4>🇮🇳 India checklist (do this first)</h4>
+              <ul class="tips">
+                <li>Turn on <strong>International transactions</strong> and <strong>Online / e-commerce transactions</strong> for the card in your bank app — many Indian cards have them off by default.</li>
+                <li>Check the card has enough limit/balance for the small temporary hold.</li>
+              </ul>
+              <details class="trouble">
+                <summary>Card declined or stuck? Troubleshooting</summary>
+                <ul class="tips">
+                  <li><strong>“Error processing transaction”</strong>: enable international + online transactions, make sure name and address match the card, or try a credit card instead of a debit card.</li>
+                  <li><strong>Several declines in a row</strong>: stop and wait a few hours — repeated attempts can get flagged. Then try once more, ideally with a different card.</li>
+                  <li><strong>“Account is being provisioned”</strong>: normal. Wait for Oracle’s “your account is ready” email before signing in.</li>
+                  <li><strong>Signup rejected</strong>: Oracle’s checks are their own. Use the chat on Oracle’s signup page, or take the <a href="/home-setup">Home box path</a> (no card).</li>
+                </ul>
+              </details>
+              <p class="fine">Source: <a href="https://docs.oracle.com/en-us/iaas/Content/Billing/Tasks/changingpaymentmethod.htm" target="_blank" rel="noopener">Oracle docs — card authorization at Free Tier signup</a> · <a href="https://www.oracle.com/cloud/free/faq/" target="_blank" rel="noopener">Oracle Free Tier FAQ</a></p>
+            </div>
+          </li>
+
+          <!-- L3 -->
+          <li class="level" data-level="3">
+            <button class="lv-head" type="button"><span class="lv-num">3</span><span class="lv-title">Sign in to the Oracle console</span><span class="lv-xp">+50 XP · ~1 min</span></button>
+            <div class="lv-body">
+              <p>Once Oracle emails you that the account is ready, sign in on Oracle’s site.</p>
+              <div class="cta-row"><a class="btn" href="https://cloud.oracle.com/" target="_blank" rel="noopener" id="console-link">Open Oracle Cloud console ↗</a></div>
+              <ul class="tips">
+                <li>Enter your <strong>Cloud Account Name</strong>, then your email and password.</li>
+                <li>Oracle may ask you to set up 2-step verification (e.g. the Oracle Mobile Authenticator app). Do it — it protects your vault.</li>
+                <li>Bookmark the console. Keep that tab open for the next levels.</li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- L4 -->
+          <li class="level" data-level="4">
+            <button class="lv-head" type="button"><span class="lv-num">4</span><span class="lv-title">Copy your compartment OCID</span><span class="lv-xp">+100 XP · ~2 min</span></button>
+            <div class="lv-body">
+              <p>The OCID tells the installer where to put your vault. For a personal vault, use your <strong>root compartment</strong> — its OCID is the same as your <strong>tenancy OCID</strong>.</p>
+              <ol class="steps">
+                <li>In the console, tap your <strong>profile icon</strong> (top-right) → <strong>Tenancy: &lt;your name&gt;</strong>.</li>
+                <li>Under <em>Tenancy information</em>, find <strong>OCID</strong> → <strong>Copy</strong>.</li>
+                <li>Paste it below. It starts with <code>ocid1.tenancy.oc1..</code></li>
+              </ol>
+              <div class="cta-row"><a class="btn ghost" href="https://cloud.oracle.com/tenancy" target="_blank" rel="noopener" id="tenancy-link">Open tenancy details ↗</a></div>
+              <label for="compartment">Compartment / tenancy OCID</label>
+              <input id="compartment" data-field="compartment" placeholder="ocid1.tenancy.oc1..aaaa…" autocomplete="off" spellcheck="false" autocapitalize="off" />
+              <p class="hint" id="ocid-hint">Stays in this browser only.</p>
+            </div>
+          </li>
+
+          <!-- L5 -->
+          <li class="level" data-level="5">
+            <button class="lv-head" type="button"><span class="lv-num">5</span><span class="lv-title">Get your SSH key</span><span class="lv-xp">+100 XP · ~1 min</span></button>
+            <div class="lv-body">
+              <p>An SSH key is your private “house key” for the server. We can make one right here in your browser — it is never uploaded.</p>
+              <div class="tabs" role="tablist">
+                <button type="button" class="tab on" data-tab="gen">Make one for me</button>
+                <button type="button" class="tab" data-tab="own">I have my own</button>
+              </div>
+              <div class="tabpane" data-pane="gen">
+                <button type="button" class="btn" id="keygen">🔑 Generate my key</button>
+                <p class="hint" id="keygen-status"></p>
+                <div class="callout warn hidden" id="key-saved">
+                  <strong>Keep the downloaded file safe</strong> (<code id="key-file">embified_ed25519</code>). It’s the only way to log in to your server and we can’t recover it.
+                  <button type="button" class="linkbtn" id="key-redownload">Download again</button>
+                </div>
+              </div>
+              <div class="tabpane hidden" data-pane="own">
+                <p class="fine">On Mac/Linux/Windows terminal: <code>ssh-keygen -t ed25519 -f ~/.ssh/embified_ed25519</code> then paste the contents of <code>~/.ssh/embified_ed25519.pub</code>.</p>
+              </div>
+              <label for="sshpub">SSH public key</label>
+              <textarea id="sshpub" data-field="sshpub" placeholder="ssh-ed25519 AAAA… embified-vault" spellcheck="false" autocapitalize="off"></textarea>
+              <p class="hint" id="ssh-hint">Public key only — safe to share with Oracle.</p>
+            </div>
+          </li>
+
+          <!-- L6 -->
+          <li class="level" data-level="6">
+            <button class="lv-head" type="button"><span class="lv-num">6</span><span class="lv-title">Launch your vault</span><span class="lv-xp">+250 XP · ~12 min</span></button>
+            <div class="lv-body">
+              <p>One click opens Oracle’s <strong>Resource Manager</strong> with the Embified vault stack and your details pre-filled.</p>
+              <div class="cta-row">
+                <a class="btn big deploy" id="deploy" href="#" target="_blank" rel="noopener">🚀 Deploy to Oracle Cloud</a>
+              </div>
+              <p class="hint" id="deploy-hint"></p>
+              <ol class="steps">
+                <li>Sign in if asked, accept the terms checkbox, check <strong>compartment</strong>, <strong>region</strong> and <strong>SSH key</strong> are filled → <strong>Next</strong>.</li>
+                <li>Keep the defaults (1 OCPU · 6 GB RAM · 47 GB boot + 150 GB data — inside Always Free) → <strong>Next</strong>.</li>
+                <li>Tick <strong>Run apply</strong> → <strong>Create</strong>. Wait ~3–5 min for the job to say <em>Succeeded</em>.</li>
+                <li>Open the job’s <strong>Outputs</strong> and copy <code>public_ip</code> into the box below.</li>
+              </ol>
+              <label for="ip">Your vault’s public IP</label>
+              <input id="ip" data-field="ip" placeholder="e.g. 140.238.1.23" inputmode="decimal" autocomplete="off" />
+              <details class="trouble">
+                <summary>Prefer manual upload? (terraform.tfvars + zip)</summary>
+                <p class="fine">Download both, then Console → Developer Services → Resource Manager → Stacks → Create stack → upload the zip and use the values from the tfvars file.</p>
+                <div class="cta-row">
+                  <button type="button" class="btn ghost" id="dl-tfvars">Download terraform.tfvars</button>
+                  <a class="btn ghost" id="dl-zip" href="#">Download stack zip</a>
+                </div>
+                <pre id="tfvars-preview" class="hidden"></pre>
+              </details>
+              <details class="trouble">
+                <summary>Apply failed? Troubleshooting</summary>
+                <ul class="tips">
+                  <li><strong>“Out of host capacity”</strong> for VM.Standard.A1.Flex is common on Always Free. Click <strong>Apply</strong> again later (early morning often works), or edit the stack and set another <em>availability domain</em>, or pick shape <code>VM.Standard.E2.1.Micro</code>.</li>
+                  <li><strong>Limit / quota exceeded</strong>: keep the default sizes; other free VMs in the tenancy count against the same limits.</li>
+                  <li><strong>Wrong region</strong>: the stack must run in your home region. Switch region (top bar of the console) and deploy again.</li>
+                </ul>
+              </details>
+            </div>
+          </li>
+
+          <!-- L7 -->
+          <li class="level" data-level="7">
+            <button class="lv-head" type="button"><span class="lv-num">7</span><span class="lv-title">Set your password &amp; link WhatsApp</span><span class="lv-xp">+250 XP · ~6 min</span></button>
+            <div class="lv-body">
+              <p>Give the server <strong>5–10 minutes</strong> to install Embified after Apply. <a id="health-link" href="#" target="_blank" rel="noopener">Check if it’s up ↗</a> (shows <code>"ok":true</code>).</p>
+              <h4>1 · Lock your inbox with a password</h4>
+              <label for="pw">Inbox password</label>
+              <div class="inline">
+                <input id="pw" type="text" placeholder="Choose a strong password" autocomplete="off" spellcheck="false" autocapitalize="off" />
+                <button type="button" class="btn ghost small" id="pw-gen">Generate</button>
+              </div>
+              <p class="hint">Not saved anywhere — it only fills the commands below. Paste them in a terminal (Mac/Linux Terminal or Windows PowerShell).</p>
+              <pre id="pw-snippet"></pre>
+              <button type="button" class="btn ghost small" id="copy-snippet">Copy commands</button>
+              <h4>2 · Link WhatsApp</h4>
+              <ol class="steps">
+                <li>Open <a id="login-link" href="#" target="_blank" rel="noopener">your vault’s login page ↗</a> and sign in with that password.</li>
+                <li>Choose <strong>Linked device</strong>. A QR code appears.</li>
+                <li>On your phone: WhatsApp → <strong>Settings → Linked devices → Link a device</strong> → scan.</li>
+              </ol>
+              <p class="fine">Linked-device mode uses an unofficial client (Baileys). Prefer the official route? See <a href="/cloud-setup">Cloud API setup</a>.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div class="questnav">
+          <button type="button" class="btn ghost" id="nav-back" aria-label="Previous level">←</button>
+          <button type="button" class="btn ghost" id="nav-skip">Skip</button>
+          <button type="button" class="btn" id="nav-done">I did this ✓</button>
+        </div>
+        <p class="fine center" id="nav-note"></p>
+      </section>
+
+      <!-- WIN -->
+      <section id="win" class="hidden">
+        <div class="card wincard">
+          <div class="bigbadge">🏆</div>
+          <h2>Vault unlocked!</h2>
+          <p class="lead">You’re now a <strong>Vault Keeper</strong>. Your WhatsApp groups are being archived on your own server.</p>
+          <div class="cta-row center">
+            <a class="btn" id="open-vault" href="#" target="_blank" rel="noopener">Open my vault ↗</a>
+            <button type="button" class="btn ghost" id="replay">Review steps</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- INVITE -->
+      <section class="card invite" id="invite">
+        <h3>👯 Invite a friend</h3>
+        <p class="fine tight">Every group has someone who loses history. Send them their own free vault — they start with +50 XP.</p>
+        <div class="inline">
+          <input id="share-url" readonly />
+          <button type="button" class="btn small" id="copy-share">Copy</button>
+        </div>
+        <div class="cta-row">
+          <a class="btn ghost small" id="wa-share" href="#" target="_blank" rel="noopener">Share on WhatsApp</a>
+          <button type="button" class="btn ghost small hidden" id="native-share">Share…</button>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2 class="sec">Questions, answered honestly</h2>
+        <details><summary>Is it really free?</summary><p>Yes. The vault runs on Oracle Cloud’s <a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener">Always Free</a> resources (an Arm VM + up to 200 GB of block storage), which have no time limit. Embified itself is open source and free. Oracle also gives a 30-day trial credit — you don’t need it.</p></details>
+        <details><summary>What does Oracle charge?</summary><p>Nothing while you stay within Always Free. At signup Oracle temporarily authorizes about US$1 (or local equivalent) to verify your card and reverses it; your bank may take a few days to release it. Your card is only charged if you choose to upgrade to Pay As You Go and use paid services. Our stack uses default sizes that fit inside Always Free.</p></details>
+        <details><summary>Why does Oracle need my card?</summary><p>Identity verification, to stop abuse of free accounts. You enter it on Oracle’s site only — Embified never sees, collects or stores card details.</p></details>
+        <details><summary>Can Oracle take my free server away?</summary><p>Oracle may reclaim Always Free VMs that look idle for a long time. Embified installs an “idle-reclaim shield” that keeps light, legitimate activity (a periodic digest + health ping). Back up anything critical.</p></details>
+        <details><summary>Who can read my chats?</summary><p>Only you. Messages and media are stored on <em>your</em> VM’s disk, behind your password. Embified has no central server holding your chats.</p></details>
+        <details><summary>Linked device (Baileys) vs official Cloud API?</summary><p>Linked device works like WhatsApp Web and captures groups you’re in, but it uses an unofficial client — WhatsApp could restrict numbers that misuse such clients, so use it gently for archiving. The official <a href="/cloud-setup">Cloud API</a> is sanctioned by Meta but needs a business number and setup, and group support depends on eligibility.</p></details>
+        <details><summary>I don’t have a credit card.</summary><p>Try a debit card with international transactions enabled (not prepaid/virtual), or use the <a href="/home-setup">Home box path</a> on any always-on computer.</p></details>
+        <details><summary>Can I stop halfway?</summary><p>Yes. Your progress is saved in this browser — come back to this page any time and press Continue.</p></details>
+      </section>
+
+      <footer class="foot">
+        <a href="/vault">About the vault</a> · <a href="/create-vault">Classic wizard</a> · <a href="/home-setup">Home box</a> · <a href="/cloud-setup">Cloud API</a> · <a href="/login">Sign in to my inbox</a> · <a href="https://github.com/koyguy/embified" target="_blank" rel="noopener">GitHub</a>
+        <div class="fine">Not affiliated with Oracle or WhatsApp. Oracle Cloud and WhatsApp are trademarks of their owners.</div>
+        <button type="button" class="linkbtn" id="reset">Reset my progress</button>
+      </footer>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <canvas id="confetti" aria-hidden="true"></canvas>
+
+    <script src="/public/vendor/nacl.min.js"></script>
+    <script src="/public/sshkeys.js"></script>
+    <script src="/public/start.js"></script>
+  </body>
+</html>

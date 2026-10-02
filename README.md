@@ -135,6 +135,14 @@ src/                  inbox UI + implementation switcher
 - `auth_info/` is a live login for the linked-device number.
 - Use Cloud API if you need a supported, contract-backed integration. Use Baileys if the number is only on the WhatsApp app and you accept unofficial-client risk.
 
+## Get your own vault — `/start`
+
+New users: open **`/start`** on any Embified node. It’s a mobile-first, 7-level guided quest (XP, badges, resume, referral links) that walks through Oracle Always Free signup and card verification (on Oracle’s own site), in-browser SSH key generation, one-click **Deploy to Oracle Cloud** (Resource Manager, pre-filled), inbox password, and WhatsApp QR linking. Home box (`/home-setup`) and Cloud API (`/cloud-setup`) paths are offered too. Details: [`docs/NEXT_USER_ONBOARDING.md`](docs/NEXT_USER_ONBOARDING.md#customer-onboarding-funnel--start-send-new-users-here).
+
+[![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip)
+
+Funnel analytics (anonymous) land in `DATA_DIR/funnel-events.jsonl`; `GET /api/funnel/stats` (behind auth) shows counts per level.
+
 ## Always Free 200 GB vault (Oracle)
 
 Embified can meter a **200 GB personal vault** (Always Free story) and keep chats on an attached data volume.
