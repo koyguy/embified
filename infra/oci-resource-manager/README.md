@@ -5,7 +5,8 @@ Provisions one Always Free–oriented vault:
 - VCN + public subnet + internet gateway
 - Compute (default `VM.Standard.A1.Flex` 1 OCPU / 6 GB)
 - ~150 GB block volume (paravirtualized), mounted at `/data`
-- cloud-init: Node 22, clone embified, systemd `embified.service`
+- cloud-init: Node 22, clone embified, systemd `embified.service`, idle-reclaim shield,
+  and `embified-tunnel.service` (free HTTPS via a Cloudflare quick tunnel)
 
 ## Deploy with Resource Manager
 
@@ -28,7 +29,11 @@ sudo chmod 600 /etc/embified/auth.env
 sudo systemctl restart embified
 ```
 
-6. Open `http://<public_ip>/login` (inbox) and link WhatsApp.
+6. Open `http://<public_ip>/login` (inbox) and link WhatsApp. Once the tunnel is up, that
+   address 302s to `https://<random>.trycloudflare.com/login`, so the password is sent over TLS.
+   The current URL is in `/var/lib/embified/tunnel-url.txt` and `publicUrl` of `/api/digest/health`;
+   it changes when the tunnel restarts. Details and the named-tunnel upgrade:
+   [`scripts/cloud-api-https/README.md`](../../scripts/cloud-api-https/README.md).
 
 ## Local Terraform (optional)
 
@@ -48,5 +53,7 @@ terraform init && terraform plan && terraform apply
 | `/opt/embified` | App checkout |
 | `/etc/embified/auth.env` | `EMBIFIED_AUTH_PASSWORD` (optional until set) |
 | `/usr/local/sbin/embified-update` | Pull `main`, rebuild, restart |
+| `embified-tunnel.service` + `/usr/local/sbin/embified-tunnel-run` | Cloudflare quick tunnel → `http://127.0.0.1:80` |
+| `/var/lib/embified/tunnel-url.txt` | Current `https://*.trycloudflare.com` origin |
 
 Always Free idle reclaim still applies — keep light traffic or a digest ping (product backlog).

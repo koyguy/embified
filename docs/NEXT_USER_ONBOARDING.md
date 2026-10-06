@@ -45,6 +45,21 @@ If you will not run an unofficial linked-device client:
 
 1:1 chats work on a standard Cloud API number. Official groups need OBA / Groups API eligibility.
 
+## HTTPS inbox (Cloudflare quick tunnel)
+
+Every vault gets free HTTPS so the inbox password never crosses the internet as plain http. No domain or Cloudflare account needed. Resource Manager cloud-init installs it; on an older vault run:
+
+```bash
+sudo bash /opt/embified/scripts/cloud-api-https/install-tunnel-service.sh
+cat /var/lib/embified/tunnel-url.txt          # https://<random>.trycloudflare.com
+```
+
+- `embified-tunnel.service` runs `cloudflared` (about 20 MB RAM, `Restart=always`) against `http://127.0.0.1:80` and writes the assigned URL to `/var/lib/embified/tunnel-url.txt`. `GET /api/digest/health` shows it as `publicUrl`.
+- Give the user **`http://<PUBLIC_IP>/`**: it 302s to the same path on the current https URL. `/health`, `/api/digest/health`, the webhook and the marketing 301s stay on http.
+- Session cookies set over the tunnel carry `Secure`.
+- **Caveat:** the `trycloudflare.com` URL changes whenever cloudflared restarts or the VM reboots. The IP keeps forwarding to the current one, so bookmark the IP, not the tunnel URL.
+- **Upgrade when there is a domain:** named tunnel (`scripts/home-box/setup-named-tunnel.sh vault.example.com`) + `EMBIFIED_PUBLIC_URL=https://vault.example.com` on `embified.service`, then `systemctl disable --now embified-tunnel`. Steps: [`scripts/cloud-api-https/README.md`](../scripts/cloud-api-https/README.md#upgrade-to-a-named-tunnel-stable-url-needs-a-domain-on-cloudflare).
+
 ## Idle reclaim shield (Always Free)
 
 Oracle may reclaim Always Free VMs that look idle. After the vault is up:
@@ -95,7 +110,7 @@ Preferred for a greenfield tenancy: use the Terraform stack in [`infra/oci-resou
 1. Zip that folder and create an **OCI Resource Manager** stack (see the folder README).
 2. Apply → note `public_ip`.
 3. Wait for cloud-init, then set `EMBIFIED_AUTH_PASSWORD` in `/etc/embified/auth.env` **before** sharing the IP.
-4. Open `/login` (inbox). Link WhatsApp as usual.
+4. Open `http://<public_ip>/login`; once the tunnel is up it forwards to the HTTPS `trycloudflare.com` URL (see [HTTPS inbox](#https-inbox-cloudflare-quick-tunnel)). Link WhatsApp as usual.
 
 Manual console steps below remain the fallback when ORM is unavailable.
 
@@ -183,7 +198,9 @@ Sign in at `http://<PUBLIC_IP>/login` — the sidebar meter (or `/api/disk`) sho
 
 ### Firewall
 
-OCI Network Security Group / subnet security list: allow **TCP 22** (admin) and **TCP 80** (inbox). Prefer locking UI to VPN/SSH-tunnel until auth exists.
+OCI Network Security Group / subnet security list: allow **TCP 22** (admin) and **TCP 80** (inbox; with the HTTPS tunnel it only forwards browsers to the https URL and serves monitors). The tunnel itself is outbound-only, so no extra port. Prefer locking UI to VPN/SSH-tunnel until auth exists.
+
+For HTTPS on a manually installed vault, run `sudo bash /opt/embified/scripts/cloud-api-https/install-tunnel-service.sh` (see [HTTPS inbox](#https-inbox-cloudflare-quick-tunnel)).
 
 ## Phase C — Link WhatsApp
 
@@ -223,7 +240,8 @@ sudo chmod +x /usr/local/bin/embified-update
 - [ ] Instance Always Free shape, Running
 - [ ] Boot + data volume ≤ 200 GB; `/data` mounted; `df -h /data` shows ~150 GB class size
 - [ ] `curl -s http://IP/api/disk` → JSON, `ok: true`, quota ~200 GB
-- [ ] `http://IP/login` loads; inbox sidebar shows the disk meter
+- [ ] `http://IP/login` 302s to `https://….trycloudflare.com/login`, which loads over TLS; inbox sidebar shows the disk meter
+- [ ] `curl -s http://IP/api/digest/health` shows `publicUrl`; login cookie over https has `Secure`
 - [ ] WhatsApp connected; at least one group receiving
 - [ ] Auth + store only under `/data/...` (not boot-only)
 - [ ] SSH key backed up; `embified-update` works

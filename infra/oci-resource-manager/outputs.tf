@@ -24,6 +24,8 @@ output "post_apply_notes" {
          echo 'EMBIFIED_AUTH_PASSWORD=your-strong-password' | sudo tee /etc/embified/auth.env
          sudo chmod 600 /etc/embified/auth.env
          sudo systemctl restart embified
-    4. Open http://<public_ip>/login (inbox) and link WhatsApp.
+    4. Open http://<public_ip>/login (inbox) — it forwards to the HTTPS quick-tunnel URL
+       (cat /var/lib/embified/tunnel-url.txt, or publicUrl in /api/digest/health). Link WhatsApp.
+       The trycloudflare.com URL changes when the tunnel restarts; http://<public_ip>/ always forwards to the current one.
   EOT
 }
