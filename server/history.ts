@@ -186,7 +186,10 @@ export function mergeHistoryBatch(input: HistoryBatchInput, now = new Date(), si
     }
     stamp.linkRequestedAt = prev.linkRequestedAt;
     stamp.media = prev.media || stamp.media;
-    stamp.gapStart = store.latestMessageTimestamp();
+    // HISTORY_RECONCILE_SINCE pins the gap start (e.g. the logout time) when live messages already
+    // trickled in before the relink; otherwise use the latest message the vault had.
+    const pinned = sinceIso && Number.isFinite(Date.parse(sinceIso)) ? new Date(Date.parse(sinceIso)).toISOString() : null;
+    stamp.gapStart = pinned || store.latestMessageTimestamp();
     stamp.sessionStartedAt = iso;
   }
   const gapStart = stamp.gapStart;

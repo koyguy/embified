@@ -113,6 +113,17 @@ describe('history merge', () => {
     assert.equal(stamp.totals.inserted, 0);
   });
 
+  it('HISTORY_RECONCILE_SINCE pins the gap start for a new session', () => {
+    history.markAwaitingLink();
+    const res = history.mergeHistoryBatch(
+      { syncType: 3, received: 1, skippedNonGroup: 0, skippedEmpty: 0, messages: [msg('gap-1', '2026-09-29T12:00:00.000Z')] },
+      new Date(),
+      '2026-09-28T10:58:00Z'
+    );
+    assert.equal(res.gapStart, '2026-09-28T10:58:00.000Z');
+    assert.equal(res.log.dupes, 1);
+  });
+
   it('reconcile report counts messages since a date and how many came from history', () => {
     const r = history.reconcileReport('2026-09-28');
     assert.equal(r.messagesSince, 4);
