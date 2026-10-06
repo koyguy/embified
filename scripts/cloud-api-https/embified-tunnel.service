@@ -1,0 +1,27 @@
+[Unit]
+Description=Embified HTTPS quick tunnel (Cloudflare trycloudflare.com -> local inbox)
+Documentation=https://github.com/koyguy/embified/tree/main/scripts/cloud-api-https
+After=network-online.target embified.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=EMBIFIED_TUNNEL_TARGET=http://127.0.0.1:80
+Environment=EMBIFIED_TUNNEL_URL_FILE=/var/lib/embified/tunnel-url.txt
+# Wrapper runs cloudflared and writes the assigned https://*.trycloudflare.com origin to the URL file.
+ExecStart=/usr/local/sbin/embified-tunnel-run
+# A stopped tunnel has no URL: the app then stops redirecting http to it.
+ExecStopPost=/bin/rm -f /var/lib/embified/tunnel-url.txt
+Restart=always
+RestartSec=5
+Nice=5
+# Small VMs (1 GB): cap cloudflared so it can never starve the WhatsApp process.
+MemoryMax=200M
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/embified
+
+[Install]
+WantedBy=multi-user.target

@@ -68,8 +68,13 @@ export function parseCookies(header?: string) {
   return out;
 }
 
-export function sessionCookieValue(token: string) {
-  const secure = process.env.EMBIFIED_AUTH_SECURE === '1' || process.env.EMBIFIED_AUTH_SECURE === 'true';
+function forceSecure() {
+  return process.env.EMBIFIED_AUTH_SECURE === '1' || process.env.EMBIFIED_AUTH_SECURE === 'true';
+}
+
+/** `secure` = request arrived over https (e.g. through the Cloudflare tunnel); plain local http keeps working. */
+export function sessionCookieValue(token: string, secureRequest = false) {
+  const secure = forceSecure() || secureRequest;
   const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
     'Path=/',
@@ -81,8 +86,9 @@ export function sessionCookieValue(token: string) {
   return parts.join('; ');
 }
 
-export function clearSessionCookie() {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export function clearSessionCookie(secureRequest = false) {
+  const base = `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return forceSecure() || secureRequest ? `${base}; Secure` : base;
 }
 
 export function isPublicPath(p: string) {

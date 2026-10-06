@@ -20,7 +20,8 @@ import {
   signSession,
 } from './server/auth.ts';
 import { allowRate, appendEvent, readStats, sanitizeEvent } from './server/funnel.ts';
-import { registerMarketingRedirects, rewriteLoginHtml } from './server/public-site.ts';
+import { marketingRedirectTarget, registerMarketingRedirects, rewriteLoginHtml } from './server/public-site.ts';
+import { configureProxyTrust, httpsRedirect, publicHttpsUrl } from './server/tunnel.ts';
 
 
 import fs from 'fs';
@@ -37,6 +38,11 @@ function readIdleShieldStamp() {
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
+
+// Cloudflare tunnel → 127.0.0.1: trust its X-Forwarded-Proto so req.secure is true over https.
+configureProxyTrust(app);
+// Plain http at the public IP → same path on the current https tunnel URL (monitors/webhook/301s exempt).
+app.use(httpsRedirect((p) => marketingRedirectTarget(p) !== null));
 
 app.use(
   express.json({
@@ -69,17 +75,17 @@ app.post('/auth/login', (req, res) => {
     res.redirect('/login?e=1');
     return;
   }
-  res.setHeader('Set-Cookie', sessionCookieValue(signSession()));
+  res.setHeader('Set-Cookie', sessionCookieValue(signSession(), req.secure));
   res.redirect(next);
 });
 
-app.post('/auth/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', clearSessionCookie());
+app.post('/auth/logout', (req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookie(req.secure));
   res.redirect('/login');
 });
 
-app.get('/auth/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', clearSessionCookie());
+app.get('/auth/logout', (req, res) => {
+  res.setHeader('Set-Cookie', clearSessionCookie(req.secure));
   res.redirect('/login');
 });
 
@@ -174,6 +180,8 @@ app.get('/api/digest/health', (req, res) => {
     ok,
     ...h,
     lastHistorySyncAt: stamp.lastSyncAt,
+    // Current https address (quick tunnel or EMBIFIED_PUBLIC_URL); not secret, null when unknown.
+    publicUrl: publicHttpsUrl(),
     generatedAt: new Date().toISOString(),
   });
 });
