@@ -88,6 +88,8 @@ export function clearSessionCookie() {
 export function isPublicPath(p: string) {
   if (p === '/health' || p === '/login' || p === '/vault' || p === '/create-vault' || p === '/cloud-setup' || p === '/home-setup' || p === '/start') return true;
   if (p === '/api/funnel/event') return true;
+  // Minimal link-state for external monitors (no message data, no phone number).
+  if (p === '/api/digest/health') return true;
   if (p.startsWith('/public/')) return true;
   if (p.startsWith('/auth/')) return true;
   if (p.startsWith('/api/whatsapp/webhook')) return true;

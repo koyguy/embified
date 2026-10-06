@@ -167,3 +167,26 @@ EMBIFIED_AUTH_PASSWORD='your-long-password'
 - `/`, `/api/*` (except WhatsApp webhooks), and `/media` require auth
 
 Logout: `POST /auth/logout` or open `/auth/logout`.
+
+## History sync & relink (linked-device mode)
+
+When a phone links the vault (QR scan), WhatsApp sends a one-time history sync. Embified now requests it
+(`syncFullHistory: true`) and merges group messages from `messaging-history.set` into the store —
+idempotent by message id, original timestamps, chats re-sorted chronologically, recovered messages tagged
+`source: "history"`. Media for recovered messages newer than `HISTORY_MEDIA_DAYS` (default 45) downloads
+in the background, best-effort.
+
+- `GET /api/history/status[?since=2026-09-28]` (auth) — stamp (`DATA_DIR/history-sync.json`: batches,
+  received / inserted / dupes, earliest/latest, per-group counts, `gapStart` = last message the vault had
+  before the relink) plus a per-group reconcile of messages since `since` (defaults to `gapStart`).
+- `POST /api/history/backfill {"since":"…","count":50}` (auth) — best-effort ON_DEMAND request to the phone
+  for older messages, anchored on the earliest stored message after `since` (WhatsApp often ignores these).
+- Journal: `history sync batch merged` log line per batch.
+- `GET /api/digest/health` (public, no message data) — `whatsapp: connected | qr | logged_out | disconnected`
+  with `since`; `?strict=1` returns 503 when not connected. `/api/digest` includes the same `whatsapp` block.
+- Logged out? The UI shows a banner with **Reset & show QR** (`POST /api/whatsapp/reset {"confirm":"reset"}`,
+  auth wall required) which moves `AUTH_DIR` to `AUTH_DIR.reset-<ts>` (never deletes) and shows a fresh QR.
+
+Limit: with Baileys 6.7.x the Desktop identities (`Browsers.macOS/windows('Desktop')`) that request the
+largest history are rejected by WhatsApp with 428 since mid-2026, so the vault links as Ubuntu/Chrome and
+receives the web-client history window (INITIAL_BOOTSTRAP + RECENT), not a full archive.

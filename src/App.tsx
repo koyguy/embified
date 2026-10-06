@@ -75,6 +75,8 @@ export default function App() {
   const [appSecret, setAppSecret] = useState('');
   const [webhookPublicUrl, setWebhookPublicUrl] = useState('');
   const [savingCloud, setSavingCloud] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
   activeRef.current = activeId;
@@ -125,6 +127,21 @@ export default function App() {
         /* ignore */
       }
     });
+    // History sync merges older messages in bulk: refetch the open chat instead of appending.
+    es.addEventListener('history', (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as { groups?: string[] };
+        const id = activeRef.current;
+        if (id && (!data.groups?.length || data.groups.includes(id))) {
+          fetch(`/api/groups/${encodeURIComponent(id)}/messages`)
+            .then((r) => r.json())
+            .then((d) => setMessages(d.messages || []))
+            .catch(() => {});
+        }
+      } catch {
+        /* ignore */
+      }
+    });
     return () => es.close();
   }, []);
 
@@ -160,6 +177,27 @@ export default function App() {
       /* status stream will catch up */
     } finally {
       setSwitching(false);
+    }
+  };
+
+  const resetLink = async () => {
+    if (resetting) return;
+    if (!window.confirm('Move the current WhatsApp session aside and show a new QR? (Nothing is deleted.)')) return;
+    setResetting(true);
+    setResetError(null);
+    try {
+      const res = await fetch('/api/whatsapp/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'reset' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setResetError(data.error || `Reset failed (${res.status})`);
+      else if (data.status) setStatus(data.status);
+    } catch {
+      setResetError('Reset failed — check the server logs');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -215,6 +253,32 @@ export default function App() {
 
           {provider === 'baileys' ? (
             <>
+              {status.waState === 'logged_out' && (
+                <div
+                  role="alert"
+                  style={{
+                    background: '#3b1d1d',
+                    border: '1px solid #b54848',
+                    color: '#ffd9d9',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    margin: '12px 0',
+                    textAlign: 'left',
+                    fontSize: 14,
+                  }}
+                >
+                  <strong>WhatsApp logged this vault out</strong>
+                  {status.waStateSince ? ` (since ${new Date(status.waStateSince).toLocaleString()})` : ''}. New
+                  group messages are not being captured. Relink to resume — WhatsApp re-sends recent history on a
+                  new link and it is merged without duplicates.
+                  <div style={{ marginTop: 10 }}>
+                    <button type="button" className="primary" disabled={resetting} onClick={resetLink}>
+                      {resetting ? 'Resetting…' : 'Reset & show QR'}
+                    </button>
+                  </div>
+                  {resetError && <div style={{ marginTop: 8 }}>{resetError}</div>}
+                </div>
+              )}
               <p>
                 Unofficial multi-device bridge. Scan the QR with{' '}
                 <strong>WhatsApp → Linked devices</strong> on the phone that’s in the groups
@@ -451,6 +515,11 @@ export default function App() {
                           )}
                         </div>
                       ))}
+                      {m.mediaUnavailable && !m.media?.length ? (
+                        <div className="body" style={{ fontStyle: 'italic', opacity: 0.7 }}>
+                          📎 {m.mediaUnavailable.kind} not downloaded
+                        </div>
+                      ) : null}
                       {m.text ? <div className="body">{m.text}</div> : null}
                       <div className="meta">{formatTime(m.timestamp)}</div>
                     </div>

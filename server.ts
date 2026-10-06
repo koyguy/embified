@@ -3,7 +3,10 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import * as store from './server/store.ts';
-import { getStatus, onEvent, startWhatsApp, switchProvider } from './server/wa.ts';
+import { getStatus, onEvent, resetLinkedDevice, startWhatsApp, switchProvider } from './server/wa.ts';
+import { readStamp, reconcileReport } from './server/history.ts';
+import { readWaState } from './server/wa-state.ts';
+import { requestBackfill } from './server/baileys.ts';
 import { handleCloudWebhookGet, handleCloudWebhookPost } from './server/cloud.ts';
 import { publicConfig, saveCloudFile } from './server/cloud-config.ts';
 import type { WaProvider } from './src/types.ts';
@@ -140,6 +143,76 @@ app.get('/api/disk', (_req, res) => {
   }
 });
 
+/** Link state for monitors: whatsapp = connected | qr | logged_out | disconnected | connecting. */
+function whatsappHealth() {
+  const st = getStatus();
+  if (st.provider === 'cloud') {
+    return { provider: 'cloud', whatsapp: st.connected ? 'connected' : 'disconnected', since: null as string | null };
+  }
+  const rec = readWaState();
+  const state = st.connected ? 'connected' : rec?.state || 'connecting';
+  return {
+    provider: 'baileys',
+    whatsapp: state,
+    since: rec?.state === state ? rec.since : null,
+    lastConnectedAt: rec?.lastConnectedAt ?? null,
+    lastLoggedOutAt: rec?.lastLoggedOutAt ?? null,
+  };
+}
+
+app.get('/api/digest/health', (req, res) => {
+  const h = whatsappHealth();
+  const stamp = readStamp();
+  const ok = h.whatsapp === 'connected';
+  // ?strict=1 → 503 when not connected, for monitors that only look at the status code.
+  res.status(!ok && req.query.strict ? 503 : 200).json({
+    ok,
+    ...h,
+    lastHistorySyncAt: stamp.lastSyncAt,
+    generatedAt: new Date().toISOString(),
+  });
+});
+
+app.get('/api/history/status', (req, res) => {
+  const stamp = readStamp();
+  const since = typeof req.query.since === 'string' && req.query.since ? req.query.since : stamp.gapStart;
+  let reconcile = null;
+  try {
+    if (since) reconcile = reconcileReport(since);
+  } catch {
+    res.status(400).json({ error: 'invalid since (use ISO date, e.g. 2026-09-28)' });
+    return;
+  }
+  res.json({ ok: true, whatsapp: whatsappHealth(), stamp, reconcile });
+});
+
+app.post('/api/history/backfill', async (req, res) => {
+  const since = String(req.body?.since || readStamp().gapStart || '');
+  try {
+    const results = await requestBackfill({ since, count: req.body?.count, groupId: req.body?.groupId });
+    res.json({ ok: true, since, results });
+  } catch (e: any) {
+    res.status(409).json({ error: e?.message || 'backfill failed' });
+  }
+});
+
+app.post('/api/whatsapp/reset', async (req, res) => {
+  if (!authEnabled()) {
+    res.status(403).json({ error: 'Reset requires the auth wall (EMBIFIED_AUTH_PASSWORD) to be enabled' });
+    return;
+  }
+  if (req.body?.confirm !== 'reset') {
+    res.status(400).json({ error: 'send {"confirm":"reset"}' });
+    return;
+  }
+  try {
+    const out = await resetLinkedDevice({ force: req.body?.force === true });
+    res.json({ ok: true, ...out });
+  } catch (e: any) {
+    res.status(e?.status || 500).json({ error: e?.message || 'reset failed' });
+  }
+});
+
 app.get('/api/digest', (_req, res) => {
   try {
     const disk = getQuotaBytes();
@@ -149,6 +222,7 @@ app.get('/api/digest', (_req, res) => {
     res.json({
       ok: true,
       idleShield: readIdleShieldStamp(),
+      whatsapp: whatsappHealth(),
       generatedAt: new Date().toISOString(),
       groups: groups.length,
       groupsWithMessages,

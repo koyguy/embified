@@ -20,7 +20,13 @@ export interface ChatMessage {
   fromMe: boolean;
   timestamp: string;
   media?: MediaAttachment[];
+  /** 'history' = recovered from WhatsApp's history sync on (re)link; absent/'live' = received live. */
+  source?: 'live' | 'history';
+  /** Media we know existed but couldn't (or chose not to) download. */
+  mediaUnavailable?: { kind: MediaKind; fileName: string };
 }
+
+export type WaLinkState = 'connecting' | 'qr' | 'connected' | 'disconnected' | 'logged_out';
 
 export interface GroupSummary {
   id: string;
@@ -47,6 +53,9 @@ export interface WaStatus {
   missingCloud?: string[];
   hasToken?: boolean;
   hasPhoneNumberId?: boolean;
+  /** Linked-device lifecycle (persisted; `since` survives restarts). */
+  waState?: WaLinkState;
+  waStateSince?: string;
 }
 
 export interface AppSettings {
