@@ -71,10 +71,8 @@ describe('funnel aggregate + storage', () => {
 });
 
 describe('public paths', () => {
-  it('exposes /start and the funnel event endpoint but not stats', () => {
-    assert.equal(isPublicPath('/start'), true);
-    assert.equal(isPublicPath('/api/funnel/event'), true);
+  it('keeps funnel endpoints behind the auth wall', () => {
+    assert.equal(isPublicPath('/api/funnel/event'), false);
     assert.equal(isPublicPath('/api/funnel/stats'), false);
-    assert.equal(isPublicPath('/vault'), true);
   });
 });

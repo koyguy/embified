@@ -11,7 +11,7 @@ sudo bash scripts/home-box/install-cloudflared.sh
 sudo bash scripts/home-box/setup-named-tunnel.sh vault.example.com
 ```
 
-Open `https://vault.example.com/login`. For Cloud API webhooks, use origin `https://vault.example.com` (see `/cloud-setup`).
+Open `https://vault.example.com/login`. For Cloud API webhooks, use origin `https://vault.example.com` (see the [Cloud API guide](https://koyguy.github.io/embified/cloud-setup.html)).
 
 ## Layout
 
@@ -22,4 +22,4 @@ Open `https://vault.example.com/login`. For Cloud API webhooks, use origin `http
 | `/var/lib/embified/auth` | Baileys session |
 | `/etc/embified/auth.env` | Inbox password |
 
-Public guide: `/home-setup`.
+Public guide: <https://koyguy.github.io/embified/home-setup.html>.

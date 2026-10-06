@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Embified — Home box + Cloudflare Tunnel</title>
+  <link rel="icon" href="data:," />
   <style>
     :root { color-scheme: dark; --bg:#0b1410; --card:#122018; --ink:#e8f5ee; --muted:#8aa897; --accent:#25d366; --line:#1e3328; }
     * { box-sizing: border-box; }
@@ -29,9 +30,9 @@
 <body>
   <main>
     <div class="nav">
-      <a href="/vault">← Vault overview</a> ·
-      <a href="/create-vault">Oracle vault</a> ·
-      <a href="/cloud-setup">Cloud API</a>
+      <a href="./">← Get your free vault</a> ·
+      <a href="create-vault.html">Oracle vault</a> ·
+      <a href="cloud-setup.html">Cloud API</a>
     </div>
     <span class="pill">Local vault · no cloud reclaim</span>
     <h1>Home box + Cloudflare Tunnel</h1>
@@ -77,10 +78,9 @@ sudo bash scripts/home-box/setup-named-tunnel.sh your-subdomain.example.com</pre
       <ol>
         <li>Open <code>https://&lt;your-tunnel-host&gt;/login</code> with the vault password.</li>
         <li><strong>Baileys:</strong> choose Linked device and scan QR (no public webhook required).</li>
-        <li><strong>Cloud API:</strong> follow <a href="/cloud-setup" style="color:var(--accent)">/cloud-setup</a>; paste the tunnel origin as the public HTTPS origin.</li>
+        <li><strong>Cloud API:</strong> follow the <a href="cloud-setup.html" style="color:var(--accent)">Cloud API guide</a>; paste the tunnel origin as the public HTTPS origin.</li>
       </ol>
-      <a class="btn" href="/">Open inbox (this host)</a>
-      <a class="btn secondary" href="/cloud-setup">Cloud API guide</a>
+      <a class="btn secondary" href="cloud-setup.html">Cloud API guide</a>
     </div>
 
     <div class="card">
@@ -89,7 +89,7 @@ sudo bash scripts/home-box/setup-named-tunnel.sh your-subdomain.example.com</pre
         <li><strong>Home box:</strong> no OCI reclaim, your disk, your power bill, you handle backups.</li>
         <li><strong>Oracle:</strong> free remote VM + ~200 GB story; capacity + idle policy apply — see idle reclaim shield.</li>
       </ul>
-      <a class="btn secondary" href="/create-vault">Create Oracle vault instead</a>
+      <a class="btn secondary" href="./">Create Oracle vault instead</a>
     </div>
   </main>
 </body>

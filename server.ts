@@ -20,6 +20,7 @@ import {
   signSession,
 } from './server/auth.ts';
 import { allowRate, appendEvent, readStats, sanitizeEvent } from './server/funnel.ts';
+import { registerMarketingRedirects, rewriteLoginHtml } from './server/public-site.ts';
 
 
 import fs from 'fs';
@@ -50,8 +51,12 @@ app.use('/public', express.static(path.join(process.cwd(), 'public')));
 app.use(express.urlencoded({ extended: false }));
 
 app.get('/login', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'login.html'));
+  const html = fs.readFileSync(path.join(process.cwd(), 'public', 'login.html'), 'utf8');
+  res.type('html').send(rewriteLoginHtml(html));
 });
+
+// Public signup/marketing pages moved to the static site (PUBLIC_SITE_URL, default GitHub Pages).
+registerMarketingRedirects(app);
 
 app.post('/auth/login', (req, res) => {
   if (!authEnabled()) {
@@ -235,38 +240,9 @@ app.get('/api/digest', (_req, res) => {
   }
 });
 
-app.get('/vault', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'vault.html'));
-});
-
-app.get('/create-vault', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'create-vault.html'));
-});
-
-app.get('/cloud-setup', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'cloud-setup.html'));
-});
-
-app.get('/home-setup', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'home-setup.html'));
-});
-
-// Public, gamified onboarding funnel (Oracle quest). Progress lives in the browser.
-// Optional EMBIFIED_SHARE_BASE (e.g. https://embified.com) makes invite links point at a canonical funnel.
-app.get('/start', (_req, res) => {
-  const file = path.join(process.cwd(), 'public', 'start.html');
-  const base = String(process.env.EMBIFIED_SHARE_BASE || '').trim();
-  if (!/^https?:\/\/[A-Za-z0-9.:\/_-]+$/.test(base)) {
-    res.sendFile(file);
-    return;
-  }
-  const html = fs
-    .readFileSync(file, 'utf8')
-    .replace('<meta name="embified-share-base" content="" />', `<meta name="embified-share-base" content="${base}" />`);
-  res.type('html').send(html);
-});
-
-// Anonymous funnel analytics: event + timestamp + random client id (no IP stored).
+// Funnel analytics collector (event + timestamp + random client id, no IP stored).
+// Behind the auth wall since the quest moved to the static site; the quest only posts
+// events when site/config.js sets ANALYTICS_URL. Kept for operators who want to reuse it.
 app.post('/api/funnel/event', (req, res) => {
   const key = String(req.ip || req.socket.remoteAddress || 'unknown');
   if (!allowRate(key)) {

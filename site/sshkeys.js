@@ -1,5 +1,5 @@
 /*
- * Browser-only SSH keypair generation for the /start quest (WebCrypto).
+ * Browser-only SSH keypair generation for the signup quest (WebCrypto).
  * Nothing is uploaded: the private key is offered as a download and never leaves the device.
  * Ed25519 when the browser supports it, otherwise RSA-3072.
  */

@@ -9,7 +9,7 @@ Goal: use nearly all of the **200 GB Always Free block/boot** allowance for embi
 | Boot | ~47–50 GB | `/` | OS + Node/Docker |
 | Block (data) | ~150 GB | `/data` | `DATA_DIR` + `AUTH_DIR` (the vault) |
 
-`EMBIFIED_QUOTA_BYTES=214748364800` (200 GiB) is the product meter ceiling shown in `/api/disk` and `/vault`.
+`EMBIFIED_QUOTA_BYTES=214748364800` (200 GiB) is the product meter ceiling shown in `/api/disk` and the inbox sidebar meter.
 
 ## Checklist (console)
 
@@ -32,7 +32,7 @@ export AUTH_DIR=/data/auth
 export EMBIFIED_QUOTA_BYTES=214748364800
 ```
 
-5. Restart embified. Open `/vault` and `/api/disk` — mount free space should jump.
+5. Restart embified. Open `/api/disk` (or the inbox sidebar meter) — mount free space should jump.
 
 ## Migrate existing data
 

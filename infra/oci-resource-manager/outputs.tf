@@ -24,6 +24,6 @@ output "post_apply_notes" {
          echo 'EMBIFIED_AUTH_PASSWORD=your-strong-password' | sudo tee /etc/embified/auth.env
          sudo chmod 600 /etc/embified/auth.env
          sudo systemctl restart embified
-    4. Open http://<public_ip>/vault (public) and http://<public_ip>/login (inbox).
+    4. Open http://<public_ip>/login (inbox) and link WhatsApp.
   EOT
 }

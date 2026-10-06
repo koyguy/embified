@@ -27,7 +27,7 @@ Do **not** onboard a second person onto an existing public IP/inbox. Give them a
 
 Run Embified on your own always-on machine (NUC, Pi + SSD, old laptop that never sleeps):
 
-1. Open **`/home-setup`** (or `scripts/home-box/README.md`).
+1. Open the **[home box guide](https://koyguy.github.io/embified/home-setup.html)** (or `scripts/home-box/README.md`).
 2. `sudo bash scripts/home-box/install-embified.sh` then `disable-sleep.sh`.
 3. Named tunnel: `sudo bash scripts/home-box/setup-named-tunnel.sh vault.example.com`.
 4. Login at `https://vault.example.com` — Baileys QR and/or Cloud API using that origin.
@@ -38,7 +38,7 @@ No Oracle reclaim risk; you own power, disk, and backups.
 
 If you will not run an unofficial linked-device client:
 
-1. Open **`/cloud-setup`** on the vault (public guide).
+1. Open the **[Cloud API guide](https://koyguy.github.io/embified/cloud-setup.html)** (public site).
 2. Put HTTPS in front of the VM (`scripts/cloud-api-https/` — Cloudflare Tunnel).
 3. In the inbox, switch to **Official Cloud API**, paste token + phone number ID + public HTTPS origin.
 4. Configure Meta’s webhook to the shown callback URL and verify token.
@@ -57,9 +57,9 @@ Resource Manager cloud-init installs this automatically. Confirm with `systemctl
 
 See [`scripts/idle-reclaim-shield/README.md`](../scripts/idle-reclaim-shield/README.md).
 
-## Customer onboarding funnel — `/start` (send new users here)
+## Customer onboarding funnel — https://koyguy.github.io/embified/ (send new users here)
 
-Public, mobile-first, gamified quest that takes a new customer from zero to a running vault. Share **`http://<any-vault>/start`** (or set `EMBIFIED_SHARE_BASE=https://your-domain` so invite links point at a canonical host).
+Public, mobile-first, gamified quest that takes a new customer from zero to a running vault. Share **<https://koyguy.github.io/embified/>** — a static site on GitHub Pages (HTTPS), built from [`site/`](../site/) by `.github/workflows/pages.yml`. Invite links use `SITE_URL` from [`site/config.js`](../site/config.js). Old vault links (`http://<vault>/start?ref=…`, `/vault`, `/create-vault`, `/cloud-setup`, `/home-setup`) 301 to the site (`PUBLIC_SITE_URL` env, default `https://koyguy.github.io/embified`). Hosting details, custom domain and analytics: [`PUBLIC_SITE.md`](PUBLIC_SITE.md).
 
 | Level | What the user does | XP |
 | --- | --- | --- |
@@ -74,12 +74,12 @@ Public, mobile-first, gamified quest that takes a new customer from zero to a ru
 - Embified never automates Oracle signup or touches card data — Oracle does verification on its own page.
 - Progress, XP, badges and referral code live in `localStorage` (`embified.start.v1`). `?ref=<code>` is captured and gives +50 XP.
 - Stack zip for the deploy button: `https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip`, republished by `.github/workflows/publish-orm-stack.yml` whenever `infra/oci-resource-manager/` changes.
-- Anonymous analytics: `POST /api/funnel/event` (public; event + timestamp + random client id + optional ref, no IP stored) → `DATA_DIR/funnel-events.jsonl`. Operator view behind auth: **`GET /api/funnel/stats`** (unique clients per event / level completed / referral code).
-- Alternatives remain: `/home-setup`, `/cloud-setup`, classic `/create-vault`.
+- Anonymous analytics are **off** by default (static hosting can’t store events, and strangers no longer reach the vault). Set `ANALYTICS_URL` in `site/config.js` to any HTTPS collector that accepts CORS JSON POSTs (`event`, `cid`, `level`, `ref`). The vault’s old collector (`POST /api/funnel/event` → `DATA_DIR/funnel-events.jsonl`, `GET /api/funnel/stats`) is still in the code but behind the auth wall.
+- Alternatives remain: [home box](https://koyguy.github.io/embified/home-setup.html), [Cloud API](https://koyguy.github.io/embified/cloud-setup.html), [classic wizard](https://koyguy.github.io/embified/create-vault.html).
 
 ## Control plane (browser)
 
-On any running Embified node, open **`/start`** (gamified quest, above) or the classic **`/create-vault`** flow:
+Open the **[guided quest](https://koyguy.github.io/embified/)** (above) or the **[classic wizard](https://koyguy.github.io/embified/create-vault.html)**:
 
 1. Oracle Free Tier signup
 2. Paste compartment OCID + SSH public key (browser-only; builds `terraform.tfvars`)
@@ -95,7 +95,7 @@ Preferred for a greenfield tenancy: use the Terraform stack in [`infra/oci-resou
 1. Zip that folder and create an **OCI Resource Manager** stack (see the folder README).
 2. Apply → note `public_ip`.
 3. Wait for cloud-init, then set `EMBIFIED_AUTH_PASSWORD` in `/etc/embified/auth.env` **before** sharing the IP.
-4. Open `/vault` (public) and `/login` (inbox). Link WhatsApp as usual.
+4. Open `/login` (inbox). Link WhatsApp as usual.
 
 Manual console steps below remain the fallback when ORM is unavailable.
 
@@ -179,7 +179,7 @@ sudo systemctl enable --now embified
 curl -sS http://127.0.0.1/api/disk
 ```
 
-Open `http://<PUBLIC_IP>/vault` — meter should show quota 200 GB and large free space on `/data`.
+Sign in at `http://<PUBLIC_IP>/login` — the sidebar meter (or `/api/disk`) should show quota 200 GB and large free space on `/data`.
 
 ### Firewall
 
@@ -223,7 +223,7 @@ sudo chmod +x /usr/local/bin/embified-update
 - [ ] Instance Always Free shape, Running
 - [ ] Boot + data volume ≤ 200 GB; `/data` mounted; `df -h /data` shows ~150 GB class size
 - [ ] `curl -s http://IP/api/disk` → JSON, `ok: true`, quota ~200 GB
-- [ ] `http://IP/vault` loads landing + meter
+- [ ] `http://IP/login` loads; inbox sidebar shows the disk meter
 - [ ] WhatsApp connected; at least one group receiving
 - [ ] Auth + store only under `/data/...` (not boot-only)
 - [ ] SSH key backed up; `embified-update` works

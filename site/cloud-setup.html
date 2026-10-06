@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Embified — Official Cloud API setup</title>
+  <link rel="icon" href="data:," />
   <style>
     :root { color-scheme: dark; --bg:#0b1410; --card:#122018; --ink:#e8f5ee; --muted:#8aa897; --accent:#25d366; --line:#1e3328; }
     * { box-sizing: border-box; }
@@ -28,7 +29,7 @@
 </head>
 <body>
   <main>
-    <div class="nav"><a href="/vault">← Vault overview</a> · <a href="/create-vault">Create vault</a> · <a href="/home-setup">Home box</a></div>
+    <div class="nav"><a href="./">← Get your free vault</a> · <a href="create-vault.html">Create vault</a> · <a href="home-setup.html">Home box</a></div>
     <span class="pill">Official path · no Baileys</span>
     <h1>WhatsApp Cloud API setup</h1>
     <p class="lead">
@@ -62,14 +63,13 @@ sudo bash /opt/embified/scripts/cloud-api-https/start-quick-tunnel.sh</pre>
     <div class="card">
       <h2>3 · Connect Embified</h2>
       <ol>
-        <li>Open the inbox, choose <strong>Official Cloud API</strong>.</li>
+        <li>Open your vault’s inbox (<code>http://&lt;your-vault&gt;/login</code>), choose <strong>Official Cloud API</strong>.</li>
         <li>Paste access token + phone number ID.</li>
         <li>Paste the tunnel <strong>origin</strong> (no path) into <em>Public HTTPS origin</em>.</li>
         <li>Copy the shown verify token and full callback URL into Meta → WhatsApp → Configuration.</li>
         <li>Subscribe to <code>messages</code>. For official groups also subscribe to the group fields Meta lists for your app.</li>
       </ol>
-      <a class="btn" href="/">Open inbox</a>
-      <a class="btn secondary" href="/create-vault">Create a new vault first</a>
+      <a class="btn secondary" href="./">Create a new vault first</a>
     </div>
     <div class="card">
       <h2>Limits (honest)</h2>

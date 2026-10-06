@@ -448,7 +448,7 @@ export default function App() {
         <div className="foot">
           <span>{groups.length} saved</span>
           {diskLabel && (
-            <a className="disk-meter" href="/vault" title="Vault usage">
+            <a className="disk-meter" href="/api/disk" title="Vault usage (JSON)">
               {diskLabel}
             </a>
           )}

@@ -86,8 +86,8 @@ export function clearSessionCookie() {
 }
 
 export function isPublicPath(p: string) {
-  if (p === '/health' || p === '/login' || p === '/vault' || p === '/create-vault' || p === '/cloud-setup' || p === '/home-setup' || p === '/start') return true;
-  if (p === '/api/funnel/event') return true;
+  // Marketing pages (/start, /vault, …) are 301s registered before the auth wall (server/public-site.ts).
+  if (p === '/health' || p === '/login') return true;
   // Minimal link-state for external monitors (no message data, no phone number).
   if (p === '/api/digest/health') return true;
   if (p.startsWith('/public/')) return true;

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Embified — Create your vault</title>
+    <link rel="icon" href="data:," />
     <style>
       :root {
         color-scheme: dark;
@@ -77,8 +78,8 @@
   </head>
   <body>
     <main>
-      <div class="nav"><a href="/vault">← Back to vault overview</a></div>
-      <div class="card" style="border-color:#1f6b3f;background:#10281c;padding:12px 16px">✨ New: the <a href="/start" style="color:var(--accent);font-weight:700">guided quest at /start</a> does all of this with one-click “Deploy to Oracle Cloud”, in-browser SSH keys and progress saving.</div>
+      <div class="nav"><a href="./">← Back to the guided setup</a></div>
+      <div class="card" style="border-color:#1f6b3f;background:#10281c;padding:12px 16px">✨ New: the <a href="./" style="color:var(--accent);font-weight:700">guided quest</a> does all of this with one-click “Deploy to Oracle Cloud”, in-browser SSH keys and progress saving.</div>
       <span class="pill">Control plane · BYO Always Free</span>
       <h1>Create your own Embified vault</h1>
       <p class="lead">
@@ -156,11 +157,11 @@ sudo install -d -m 700 /etc/embified
 echo 'EMBIFIED_AUTH_PASSWORD=your-strong-password' | sudo tee /etc/embified/auth.env
 sudo chmod 600 /etc/embified/auth.env
 sudo systemctl restart embified</pre>
-        <p class="fine">Then open <code>http://&lt;public_ip&gt;/vault</code> and <code>http://&lt;public_ip&gt;/login</code>. Link WhatsApp from the inbox. Prefer a home box? <a href="/home-setup" style="color:var(--accent)">/home-setup</a>. Prefer official Cloud API (no Baileys)? See <a href="/cloud-setup" style="color:var(--accent)">/cloud-setup</a> after the VM is up.</p>
+        <p class="fine">Then open <code>http://&lt;public_ip&gt;/login</code> and link WhatsApp from the inbox. Prefer a home box? See the <a href="home-setup.html" style="color:var(--accent)">home box guide</a>. Prefer official Cloud API (no Baileys)? See the <a href="cloud-setup.html" style="color:var(--accent)">Cloud API guide</a> after the VM is up.</p>
         <pre id="tfvars-preview"></pre>
         <button type="button" class="btn" id="dl-tfvars">Download terraform.tfvars</button>
         <button type="button" class="btn secondary" id="back-2">Back</button>
-        <a class="btn secondary" href="/vault">Done</a>
+        <a class="btn secondary" href="./">Done</a>
         <p class="fine">OAuth “Connect Oracle” is not wired yet — paste OCIDs manually for this MVP. Idle Always Free VMs can still be reclaimed; keep light traffic or a digest ping.</p>
       </section>
     </main>

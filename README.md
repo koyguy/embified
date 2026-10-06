@@ -135,19 +135,19 @@ src/                  inbox UI + implementation switcher
 - `auth_info/` is a live login for the linked-device number.
 - Use Cloud API if you need a supported, contract-backed integration. Use Baileys if the number is only on the WhatsApp app and you accept unofficial-client risk.
 
-## Get your own vault — `/start`
+## Get your own vault — https://koyguy.github.io/embified/
 
-New users: open **`/start`** on any Embified node. It’s a mobile-first, 7-level guided quest (XP, badges, resume, referral links) that walks through Oracle Always Free signup and card verification (on Oracle’s own site), in-browser SSH key generation, one-click **Deploy to Oracle Cloud** (Resource Manager, pre-filled), inbox password, and WhatsApp QR linking. Home box (`/home-setup`) and Cloud API (`/cloud-setup`) paths are offered too. Details: [`docs/NEXT_USER_ONBOARDING.md`](docs/NEXT_USER_ONBOARDING.md#customer-onboarding-funnel--start-send-new-users-here).
+New users: send them to **<https://koyguy.github.io/embified/>** (static site on GitHub Pages, HTTPS, source in [`site/`](site/)). It’s a mobile-first, 7-level guided quest (XP, badges, resume, referral links) that walks through Oracle Always Free signup and card verification (on Oracle’s own site), in-browser SSH key generation, one-click **Deploy to Oracle Cloud** (Resource Manager, pre-filled), inbox password, and WhatsApp QR linking. Home box ([`home-setup.html`](https://koyguy.github.io/embified/home-setup.html)) and Cloud API ([`cloud-setup.html`](https://koyguy.github.io/embified/cloud-setup.html)) paths are offered too. Hosting, custom domain and analytics: [`docs/PUBLIC_SITE.md`](docs/PUBLIC_SITE.md). Details: [`docs/NEXT_USER_ONBOARDING.md`](docs/NEXT_USER_ONBOARDING.md#customer-onboarding-funnel--start-send-new-users-here).
 
 [![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip)
 
-Funnel analytics (anonymous) land in `DATA_DIR/funnel-events.jsonl`; `GET /api/funnel/stats` (behind auth) shows counts per level.
+Vaults no longer serve these pages: `/start`, `/vault`, `/create-vault`, `/cloud-setup` and `/home-setup` answer **301** to the matching page on the site (`PUBLIC_SITE_URL`, default `https://koyguy.github.io/embified`), keeping `?ref=` codes. Funnel analytics are off by default; set `ANALYTICS_URL` in [`site/config.js`](site/config.js) to enable them.
 
 ## Always Free 200 GB vault (Oracle)
 
 Embified can meter a **200 GB personal vault** (Always Free story) and keep chats on an attached data volume.
 
-- UI meter + landing: open [`/vault`](/vault) after start
+- UI meter: inbox sidebar footer (links to `/api/disk`)
 - JSON: `GET /api/disk`, `GET /api/digest`
 - Attach ~150 GB block volume: see [`scripts/oci-always-free/README.md`](scripts/oci-always-free/README.md)
 - Env: `EMBIFIED_QUOTA_BYTES`, `DATA_DIR`, `AUTH_DIR` (see `.env.example`)
@@ -163,7 +163,8 @@ EMBIFIED_AUTH_PASSWORD='your-long-password'
 ```
 
 - `/login` — password form
-- `/vault` and `/health` stay public
+- `/health`, `/api/digest/health`, `/auth/*` and `/api/whatsapp/webhook` stay public
+- `/start`, `/vault`, `/create-vault`, `/cloud-setup`, `/home-setup` are 301s to the public site (`PUBLIC_SITE_URL`)
 - `/`, `/api/*` (except WhatsApp webhooks), and `/media` require auth
 
 Logout: `POST /auth/logout` or open `/auth/logout`.
