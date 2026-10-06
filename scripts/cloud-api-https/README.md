@@ -19,4 +19,4 @@ Quick-tunnel hostnames change when the process restarts.
 
 Create a named Cloudflare Tunnel pointed at `http://127.0.0.1:80`, then use that stable origin as `WEBHOOK_PUBLIC_URL`.
 
-See the public guide at `/cloud-setup`.
+See the public guide at <https://koyguy.github.io/embified/cloud-setup.html>.

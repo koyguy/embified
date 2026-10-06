@@ -28,7 +28,7 @@ sudo chmod 600 /etc/embified/auth.env
 sudo systemctl restart embified
 ```
 
-6. Open `http://<public_ip>/vault` (public) and `http://<public_ip>/login` (inbox).
+6. Open `http://<public_ip>/login` (inbox) and link WhatsApp.
 
 ## Local Terraform (optional)
 

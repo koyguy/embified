@@ -8,8 +8,9 @@
     <meta name="theme-color" content="#0b1410" />
     <meta property="og:title" content="Free 200 GB WhatsApp group vault on your own cloud" />
     <meta property="og:description" content="Never lose group history. Your chats stay on your own server. Guided setup in ~35 minutes." />
-    <meta name="embified-share-base" content="" />
-    <link rel="stylesheet" href="/public/start.css" />
+    <meta property="og:url" content="https://koyguy.github.io/embified/" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="start.css" />
   </head>
   <body>
     <header class="topbar">
@@ -141,7 +142,7 @@
                   <li><strong>“Error processing transaction”</strong>: enable international + online transactions, make sure name and address match the card, or try a credit card instead of a debit card.</li>
                   <li><strong>Several declines in a row</strong>: stop and wait a few hours — repeated attempts can get flagged. Then try once more, ideally with a different card.</li>
                   <li><strong>“Account is being provisioned”</strong>: normal. Wait for Oracle’s “your account is ready” email before signing in.</li>
-                  <li><strong>Signup rejected</strong>: Oracle’s checks are their own. Use the chat on Oracle’s signup page, or take the <a href="/home-setup">Home box path</a> (no card).</li>
+                  <li><strong>Signup rejected</strong>: Oracle’s checks are their own. Use the chat on Oracle’s signup page, or take the <a href="home-setup.html">Home box path</a> (no card).</li>
                 </ul>
               </details>
               <p class="fine">Source: <a href="https://docs.oracle.com/en-us/iaas/Content/Billing/Tasks/changingpaymentmethod.htm" target="_blank" rel="noopener">Oracle docs — card authorization at Free Tier signup</a> · <a href="https://www.oracle.com/cloud/free/faq/" target="_blank" rel="noopener">Oracle Free Tier FAQ</a></p>
@@ -262,7 +263,7 @@
                 <li>Choose <strong>Linked device</strong>. A QR code appears.</li>
                 <li>On your phone: WhatsApp → <strong>Settings → Linked devices → Link a device</strong> → scan.</li>
               </ol>
-              <p class="fine">Linked-device mode uses an unofficial client (Baileys). Prefer the official route? See <a href="/cloud-setup">Cloud API setup</a>.</p>
+              <p class="fine">Linked-device mode uses an unofficial client (Baileys). Prefer the official route? See <a href="cloud-setup.html">Cloud API setup</a>.</p>
             </div>
           </li>
         </ol>
@@ -310,13 +311,14 @@
         <details><summary>Why does Oracle need my card?</summary><p>Identity verification, to stop abuse of free accounts. You enter it on Oracle’s site only — Embified never sees, collects or stores card details.</p></details>
         <details><summary>Can Oracle take my free server away?</summary><p>Oracle may reclaim Always Free VMs that look idle for a long time. Embified installs an “idle-reclaim shield” that keeps light, legitimate activity (a periodic digest + health ping). Back up anything critical.</p></details>
         <details><summary>Who can read my chats?</summary><p>Only you. Messages and media are stored on <em>your</em> VM’s disk, behind your password. Embified has no central server holding your chats.</p></details>
-        <details><summary>Linked device (Baileys) vs official Cloud API?</summary><p>Linked device works like WhatsApp Web and captures groups you’re in, but it uses an unofficial client — WhatsApp could restrict numbers that misuse such clients, so use it gently for archiving. The official <a href="/cloud-setup">Cloud API</a> is sanctioned by Meta but needs a business number and setup, and group support depends on eligibility.</p></details>
-        <details><summary>I don’t have a credit card.</summary><p>Try a debit card with international transactions enabled (not prepaid/virtual), or use the <a href="/home-setup">Home box path</a> on any always-on computer.</p></details>
+        <details><summary>Linked device (Baileys) vs official Cloud API?</summary><p>Linked device works like WhatsApp Web and captures groups you’re in, but it uses an unofficial client — WhatsApp could restrict numbers that misuse such clients, so use it gently for archiving. The official <a href="cloud-setup.html">Cloud API</a> is sanctioned by Meta but needs a business number and setup, and group support depends on eligibility.</p></details>
+        <details><summary>I don’t have a credit card.</summary><p>Try a debit card with international transactions enabled (not prepaid/virtual), or use the <a href="home-setup.html">Home box path</a> on any always-on computer.</p></details>
         <details><summary>Can I stop halfway?</summary><p>Yes. Your progress is saved in this browser — come back to this page any time and press Continue.</p></details>
       </section>
 
       <footer class="foot">
-        <a href="/vault">About the vault</a> · <a href="/create-vault">Classic wizard</a> · <a href="/home-setup">Home box</a> · <a href="/cloud-setup">Cloud API</a> · <a href="/login">Sign in to my inbox</a> · <a href="https://github.com/koyguy/embified" target="_blank" rel="noopener">GitHub</a>
+        <a href="create-vault.html">Classic wizard</a> · <a href="home-setup.html">Home box</a> · <a href="cloud-setup.html">Cloud API</a> · <a href="https://github.com/koyguy/embified" target="_blank" rel="noopener">GitHub</a>
+        <div class="fine">Already have a vault? Sign in at <code>http://&lt;your-vault-ip&gt;/login</code>.</div>
         <div class="fine">Not affiliated with Oracle or WhatsApp. Oracle Cloud and WhatsApp are trademarks of their owners.</div>
         <button type="button" class="linkbtn" id="reset">Reset my progress</button>
       </footer>
@@ -325,8 +327,9 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <canvas id="confetti" aria-hidden="true"></canvas>
 
-    <script src="/public/vendor/nacl.min.js"></script>
-    <script src="/public/sshkeys.js"></script>
-    <script src="/public/start.js"></script>
+    <script src="config.js"></script>
+    <script src="vendor/nacl.min.js"></script>
+    <script src="sshkeys.js"></script>
+    <script src="start.js"></script>
   </body>
 </html>
