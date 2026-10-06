@@ -61,7 +61,8 @@ describe('history merge', () => {
 
     assert.equal(res.log.inserted, 3);
     assert.equal(res.log.dupes, 2);
-    assert.equal(res.gapStart, '2026-09-28T10:40:00.000Z');
+    // HISTORY_RECONCILE_SINCE (3rd arg) pins the gap start.
+    assert.equal(res.gapStart, '2026-09-28T00:00:00.000Z');
     assert.equal(res.log.insertedSinceGap, 2);
     assert.equal(res.sinceCount, 2);
     assert.equal(res.log.earliest, '2026-09-20T08:00:00.000Z');
@@ -101,16 +102,27 @@ describe('history merge', () => {
     assert.equal(replay.log.dupes, 2);
     assert.equal(store.loadMessages(G).length, 5);
     // Same session keeps the original gap start.
-    assert.equal(replay.gapStart, '2026-09-28T10:40:00.000Z');
+    assert.equal(replay.gapStart, '2026-09-28T00:00:00.000Z');
   });
 
-  it('starts a new session (fresh gap start) after a QR is shown', () => {
+  it('starts a new session (fresh gap start = latest stored message) after a QR is shown', () => {
     history.markAwaitingLink();
-    const res = history.mergeHistoryBatch({ syncType: 0, received: 0, skippedNonGroup: 0, skippedEmpty: 0, messages: [] });
+    const res = history.mergeHistoryBatch({ syncType: 0, received: 0, skippedNonGroup: 0, skippedEmpty: 0, messages: [] }, new Date(), undefined);
     assert.equal(res.gapStart, '2026-10-01T09:00:00.000Z');
     const stamp = history.readStamp();
     assert.equal(stamp.previousSessions.length, 1);
     assert.equal(stamp.totals.inserted, 0);
+  });
+
+  it('HISTORY_RECONCILE_SINCE pins the gap start for a new session', () => {
+    history.markAwaitingLink();
+    const res = history.mergeHistoryBatch(
+      { syncType: 3, received: 1, skippedNonGroup: 0, skippedEmpty: 0, messages: [msg('gap-1', '2026-09-29T12:00:00.000Z')] },
+      new Date(),
+      '2026-09-28T10:58:00Z'
+    );
+    assert.equal(res.gapStart, '2026-09-28T10:58:00.000Z');
+    assert.equal(res.log.dupes, 1);
   });
 
   it('reconcile report counts messages since a date and how many came from history', () => {

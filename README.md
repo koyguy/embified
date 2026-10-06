@@ -182,6 +182,7 @@ in the background, best-effort.
 - `POST /api/history/backfill {"since":"…","count":50}` (auth) — best-effort ON_DEMAND request to the phone
   for older messages, anchored on the earliest stored message after `since` (WhatsApp often ignores these).
 - Journal: `history sync batch merged` log line per batch.
+- `HISTORY_RECONCILE_SINCE=<ISO>` (optional env) pins `gapStart` (e.g. the logout time) and adds `insertedSince` to the log line.
 - `GET /api/digest/health` (public, no message data) — `whatsapp: connected | qr | logged_out | disconnected`
   with `since`; `?strict=1` returns 503 when not connected. `/api/digest` includes the same `whatsapp` block.
 - Logged out? The UI shows a banner with **Reset & show QR** (`POST /api/whatsapp/reset {"confirm":"reset"}`,
