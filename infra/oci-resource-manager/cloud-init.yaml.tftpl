@@ -102,3 +102,6 @@ runcmd:
   - systemctl daemon-reload
   - systemctl enable --now embified
   - bash /opt/embified/scripts/idle-reclaim-shield/install.sh
+  # Free HTTPS (Cloudflare quick tunnel, https://*.trycloudflare.com); http://<ip>/ forwards to it.
+  # Best effort: the vault still works over http if cloudflared can't be installed.
+  - bash /opt/embified/scripts/cloud-api-https/install-tunnel-service.sh || true

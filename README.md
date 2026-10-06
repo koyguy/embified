@@ -169,6 +169,31 @@ EMBIFIED_AUTH_PASSWORD='your-long-password'
 
 Logout: `POST /auth/logout` or open `/auth/logout`.
 
+## HTTPS without a domain (Cloudflare quick tunnel)
+
+Oracle vaults run `embified-tunnel.service` (installed by cloud-init, or
+`sudo bash /opt/embified/scripts/cloud-api-https/install-tunnel-service.sh`): a free
+Cloudflare quick tunnel that gives the inbox an `https://<random>.trycloudflare.com` address, no
+account needed. The current URL is in `/var/lib/embified/tunnel-url.txt` and in `publicUrl` of
+`GET /api/digest/health`.
+
+- `http://<public-ip>/`, `/login`, the inbox and its APIs 302 (POST: 307) to the same path on the
+  current https URL, so the password and session cookie never cross the internet as plain http.
+- `/health`, `/api/digest/health`, `/api/whatsapp/webhook`, `/public/*` and the marketing 301s still
+  answer over http; local `curl http://127.0.0.1/…` is never redirected.
+- Express trusts `X-Forwarded-Proto` from loopback only (`EMBIFIED_TRUST_PROXY`, default `loopback`),
+  so tunnel requests get a `Secure` session cookie; plain local http still logs in.
+- **The quick-tunnel URL changes when cloudflared restarts or the VM reboots.** `http://<public-ip>/`
+  always forwards to the current one.
+- Have a domain? Switch to a named tunnel and set `EMBIFIED_PUBLIC_URL=https://vault.example.com`
+  (wins over the URL file); see [`scripts/cloud-api-https/README.md`](scripts/cloud-api-https/README.md).
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EMBIFIED_TUNNEL_URL_FILE` | `/var/lib/embified/tunnel-url.txt` | Where the tunnel service publishes its origin |
+| `EMBIFIED_PUBLIC_URL` | — | Stable https origin (named tunnel / domain); overrides the file |
+| `EMBIFIED_TRUST_PROXY` | `loopback` | Express `trust proxy` setting |
+
 ## History sync & relink (linked-device mode)
 
 When a phone links the vault (QR scan), WhatsApp sends a one-time history sync. Embified now requests it
