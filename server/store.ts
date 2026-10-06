@@ -31,9 +31,16 @@ function loadGroups(): Record<string, GroupRecord> {
   }
 }
 
-function saveGroups(map: Record<string, GroupRecord>) {
+/** Write via temp file + rename so a crash mid-write never truncates a chat file. */
+export function writeJsonAtomic(file: string, data: unknown) {
   ensureDirs();
-  fs.writeFileSync(GROUPS_FILE, JSON.stringify(map, null, 2));
+  const tmp = `${file}.tmp-${process.pid}-${crypto.randomBytes(3).toString('hex')}`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, file);
+}
+
+function saveGroups(map: Record<string, GroupRecord>) {
+  writeJsonAtomic(GROUPS_FILE, map);
 }
 
 export function listGroups(): GroupSummary[] {
@@ -67,8 +74,101 @@ export function loadMessages(groupId: string): ChatMessage[] {
 }
 
 function saveMessages(groupId: string, messages: ChatMessage[]) {
-  ensureDirs();
-  fs.writeFileSync(chatsFile(groupId), JSON.stringify(messages, null, 2));
+  writeJsonAtomic(chatsFile(groupId), messages);
+}
+
+function previewOf(msg: ChatMessage) {
+  return (
+    msg.text?.trim() ||
+    (msg.media?.[0] ? `[${msg.media[0].kind}] ${msg.media[0].fileName}` : '') ||
+    (msg.mediaUnavailable ? `[${msg.mediaUnavailable.kind}]` : '')
+  ).slice(0, 140);
+}
+
+function tsOf(iso?: string) {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
+export interface MergeResult {
+  inserted: ChatMessage[];
+  dupes: number;
+}
+
+/**
+ * Bulk, idempotent merge (used by WhatsApp history sync). Dedupes by message key id against what is
+ * already stored and within the batch, keeps original timestamps, re-sorts the chat chronologically
+ * (stable) and writes the chat + group summary once per call.
+ * Unread only counts inserted messages newer than `unreadAfter` (defaults to the group's previous lastAt),
+ * so a large backfill of old history doesn't explode the badge.
+ */
+export function mergeMessages(
+  groupId: string,
+  incoming: ChatMessage[],
+  opts: { unreadAfter?: string | null } = {}
+): MergeResult {
+  const existing = loadMessages(groupId);
+  const seen = new Set(existing.map((m) => m.id));
+  const inserted: ChatMessage[] = [];
+  let dupes = 0;
+  for (const m of incoming) {
+    if (!m?.id || seen.has(m.id)) {
+      dupes++;
+      continue;
+    }
+    seen.add(m.id);
+    inserted.push({ ...m, groupId });
+  }
+  if (!inserted.length) return { inserted, dupes };
+
+  const all = existing
+    .concat(inserted)
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => tsOf(a.m.timestamp) - tsOf(b.m.timestamp) || a.i - b.i)
+    .map((x) => x.m);
+  saveMessages(groupId, all);
+
+  const map = loadGroups();
+  const g = map[groupId] || { id: groupId, name: groupId, unread: 0, messageCount: 0 };
+  const prevLast = g.lastAt;
+  const last = all[all.length - 1];
+  g.messageCount = all.length;
+  if (!prevLast || tsOf(last.timestamp) >= tsOf(prevLast)) {
+    g.lastAt = last.timestamp;
+    g.lastMessage = previewOf(last);
+  }
+  const cutoff = opts.unreadAfter !== undefined ? opts.unreadAfter : prevLast;
+  if (cutoff) {
+    const c = tsOf(cutoff);
+    g.unread = (g.unread || 0) + inserted.filter((m) => !m.fromMe && tsOf(m.timestamp) > c).length;
+  }
+  map[groupId] = g;
+  saveGroups(map);
+  return { inserted, dupes };
+}
+
+/** Attach media downloaded after the message was stored (history media is fetched in the background). */
+export function attachMedia(groupId: string, id: string, media: MediaAttachment[]): ChatMessage | null {
+  const messages = loadMessages(groupId);
+  const msg = messages.find((m) => m.id === id);
+  if (!msg) return null;
+  msg.media = media;
+  delete msg.mediaUnavailable;
+  saveMessages(groupId, messages);
+  return msg;
+}
+
+/** Latest stored message timestamp across all groups (used as the "gap start" when a relink syncs history). */
+export function latestMessageTimestamp(): string | null {
+  let best: string | null = null;
+  for (const g of Object.values(loadGroups())) {
+    if (g.lastAt && (!best || tsOf(g.lastAt) > tsOf(best))) best = g.lastAt;
+  }
+  return best;
+}
+
+export function listGroupIdsWithChats(): string[] {
+  return Object.keys(loadGroups());
 }
 
 export function appendMessage(msg: ChatMessage): ChatMessage {
@@ -77,9 +177,7 @@ export function appendMessage(msg: ChatMessage): ChatMessage {
   messages.push(msg);
   saveMessages(msg.groupId, messages);
 
-  const preview =
-    msg.text?.trim() ||
-    (msg.media?.[0] ? `[${msg.media[0].kind}] ${msg.media[0].fileName}` : '');
+  const preview = previewOf(msg);
   const map = loadGroups();
   const g = map[msg.groupId] || {
     id: msg.groupId,

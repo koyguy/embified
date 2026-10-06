@@ -1,6 +1,6 @@
 import type { WaProvider } from '../src/types.ts';
 import { getStatus, onEvent, setStatus } from './bus.ts';
-import { startBaileys, stopBaileys } from './baileys.ts';
+import { isBaileysConnected, moveAuthAside, startBaileys, stopBaileys } from './baileys.ts';
 import { startCloud, stopCloud } from './cloud.ts';
 import { loadSettings, saveSettings } from './settings.ts';
 import { ensureVerifyToken, WEBHOOK_PATH } from './cloud-config.ts';
@@ -48,4 +48,19 @@ export async function switchProvider(provider: WaProvider) {
   }
   await startWhatsApp(provider);
   return getStatus();
+}
+
+/**
+ * "Reset & show QR": move auth_info aside (never delete) and restart the linked-device socket so a
+ * fresh QR appears. Refuses while connected unless force=true, so a healthy link isn't dropped by accident.
+ */
+export async function resetLinkedDevice(opts: { force?: boolean } = {}) {
+  if (currentProvider() !== 'baileys') throw Object.assign(new Error('Linked-device mode is not active'), { status: 409 });
+  if (isBaileysConnected() && !opts.force) {
+    throw Object.assign(new Error('WhatsApp is connected; pass force=true to relink anyway'), { status: 409 });
+  }
+  if (starting) await starting;
+  const movedTo = await moveAuthAside();
+  await startWhatsApp('baileys');
+  return { movedTo, status: getStatus() };
 }
