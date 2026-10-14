@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Embified — Free 200 GB WhatsApp group vault (chat setup)</title>
-    <meta name="description" content="Chat with the Embified assistant and get a free 200 GB WhatsApp group vault on your own Oracle Always Free cloud. One command does the setup." />
+    <title>Embified — Your own private WhatsApp group archive (chat setup)</title>
+    <meta name="description" content="Chat with the Embified assistant and build your own private WhatsApp group archive on your own Oracle Always Free cloud. One command does the setup." />
     <meta name="theme-color" content="#0b1410" />
-    <meta property="og:title" content="Free 200 GB WhatsApp group vault on your own cloud" />
+    <meta property="og:title" content="Your own private WhatsApp group archive on your own cloud" />
     <meta property="og:description" content="Never lose group history. Your chats stay on your own server. A friendly chat walks you through it." />
     <meta property="og:url" content="https://koyguy.github.io/embified/" />
     <link rel="icon" href="data:," />
@@ -15,9 +15,12 @@
   <body>
     <header class="topbar">
       <a class="brand" href="./" aria-label="Embified"><span class="logo">E</span><span><b>Embified assistant</b><small id="status">online · free setup</small></span></a>
-      <div class="xpchip" title="Your progress"><span>⚡</span><span id="xp">0</span>&nbsp;XP<span class="minibar"><span id="bar"></span></span></div>
+      <div class="vaultchip" title="How much of your vault is built"><span id="vaultdoor"></span><span id="pct">0%</span></div>
     </header>
-    <div class="levelbar"><span id="levelname">Newcomer</span><span id="badges"></span></div>
+    <section id="vaultbar" class="vaultbar" role="progressbar" aria-label="Your vault" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <ol id="stages" class="stages"></ol>
+      <div id="vstatus" class="vstatus">Your vault is 0% built · about 30 minutes left</div>
+    </section>
     <main id="log" aria-live="polite"></main>
     <footer class="composer">
       <div id="replies" class="replies"></div>

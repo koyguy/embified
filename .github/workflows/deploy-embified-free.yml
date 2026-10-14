@@ -3,7 +3,21 @@ name: Deploy embified-free
 on:
   push:
     branches: [main]
+    # Website, docs and launcher changes never touch the running vault, so they don't deploy
+    # (each deploy restarts the WhatsApp link). Pages has its own workflow.
+    paths-ignore:
+      - 'site/**'
+      - 'docs/**'
+      - '**/*.md'
+      - 'infra/**'
+      - 'scripts/oci-cloudshell/**'
+      - 'scripts/site-e2e/**'
+      - '.github/workflows/pages*'
   workflow_dispatch:
+
+concurrency:
+  group: deploy-embified-free
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -15,4 +29,29 @@ jobs:
           host: 144.24.138.220
           username: ubuntu
           key: ${{ secrets.EMBIFIED_SSH_KEY }}
-          script: sudo /usr/local/bin/embified-update
+          command_timeout: 15m
+          # Install the update script from origin/main first, so fixes to it apply on this run.
+          # The script itself skips the restart when the commit is unchanged or only non-runtime
+          # files changed, and waits up to 90s for /health and /api/digest/health after a restart.
+          script: |
+            set -euo pipefail
+            cd /opt/embified
+            sudo git config --global --add safe.directory /opt/embified >/dev/null 2>&1 || true
+            sudo git fetch -q origin main
+            tmp="$(mktemp)"
+            if sudo git show origin/main:scripts/embified-update > "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+              sudo install -m 0755 "$tmp" /usr/local/bin/embified-update
+            fi
+            rm -f "$tmp"
+            sudo /usr/local/bin/embified-update
+
+      - name: Check public health (retry up to 90s)
+        run: |
+          for url in http://144.24.138.220/health http://144.24.138.220/api/digest/health; do
+            ok=
+            for i in $(seq 1 30); do
+              if body="$(curl -fsS -m 5 "$url")"; then echo "$url OK: ${body:0:400}"; ok=1; break; fi
+              sleep 3
+            done
+            [ -n "$ok" ] || { echo "::error::$url not healthy after 90s"; exit 1; }
+          done
