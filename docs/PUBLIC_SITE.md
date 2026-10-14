@@ -1,10 +1,12 @@
-# Public site (signup quest + setup guides)
+# Public site (signup chat + setup guides)
 
 The public, stranger-facing pages live on a **static site**, not on anyone's vault:
 
 | Page | URL |
 | --- | --- |
-| Guided signup quest (index) | https://koyguy.github.io/embified/ |
+| Signup chat assistant (index) | https://koyguy.github.io/embified/ |
+| Checklist quest (7 levels) | https://koyguy.github.io/embified/quest.html |
+| Cloud Shell launcher script | https://koyguy.github.io/embified/install/oci-launch.sh |
 | Classic wizard | https://koyguy.github.io/embified/create-vault.html |
 | Cloud API guide | https://koyguy.github.io/embified/cloud-setup.html |
 | Home box guide | https://koyguy.github.io/embified/home-setup.html |
@@ -13,6 +15,27 @@ Source: [`site/`](../site/) — plain HTML/CSS/JS, no build step, all links rela
 site works under the `/embified/` base path and at a domain root.
 Published by [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) on every push
 to `main` that touches `site/**` (Settings → Pages → Source: **GitHub Actions**, HTTPS enforced).
+
+## Signup chat (`index.html`, `chat.js`, `chat.css`)
+
+A **scripted** chat (no AI, no API, no network calls). The script is the `N` node table in
+`site/chat.js`: each node has bot bubbles, quick replies and an optional text input. State
+(transcript, node, XP, badges, region, vault link, referral) lives in `localStorage`
+(`embified.chat.v1`), so customers resume where they left off. `?ref=` works as before (+50 XP)
+and shares the invite code with the checklist quest. `?fast=1` disables typing delays (tests).
+
+Flow: greet → path (Oracle / home box / Cloud API) → card pre-check → home region →
+Oracle signup (opens `signup.cloud.oracle.com`; "I'm stuck" branches: card declined, email,
+"Error processing transaction", region, VPN; "What's this charge?") → sign in + open Cloud
+Shell (`>_` icon; Oracle has no documented deep link that opens Cloud Shell) → copy the
+one-liner → paste vault link (validated) → open vault + scan QR → confetti, badge, invite link.
+A ❓ FAQ is available any time and returns to the current step.
+
+The one-liner runs [`install/oci-launch.sh`](../site/install/oci-launch.sh) — a copy of
+[`scripts/oci-cloudshell/oci-launch.sh`](../scripts/oci-cloudshell/oci-launch.sh) (keep them
+identical). See that folder's README for what it does and how it's tested.
+
+Headless test: `npx -y -p playwright@1.48.2 node scripts/site-e2e/chat.e2e.mjs [--shots DIR]`.
 
 ## Vault side
 

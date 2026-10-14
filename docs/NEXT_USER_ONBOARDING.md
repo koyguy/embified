@@ -74,6 +74,15 @@ See [`scripts/idle-reclaim-shield/README.md`](../scripts/idle-reclaim-shield/REA
 
 ## Customer onboarding funnel — https://koyguy.github.io/embified/ (send new users here)
 
+**Default: a scripted chat assistant** (no AI). It coaches the customer through Oracle signup and card check on Oracle's own pages, then gives them **one command for Oracle Cloud Shell** that does all the setup in their own tenancy (compartment, SSH key, inbox password, Resource Manager stack, A1→E2.1.Micro capacity fallback, waits for the https link). The customer pastes the vault link back into the chat and scans the WhatsApp QR. See [`PUBLIC_SITE.md`](PUBLIC_SITE.md#signup-chat-indexhtml-chatjs-chatcss) and [`scripts/oci-cloudshell/`](../scripts/oci-cloudshell/).
+
+```bash
+# in Oracle Cloud Shell (customer's own tenancy)
+bash <(curl -fsSL https://koyguy.github.io/embified/install/oci-launch.sh)          # add --dry-run to preview
+```
+
+The older checklist (below) is at **<https://koyguy.github.io/embified/quest.html>** ("Prefer a checklist?").
+
 Public, mobile-first, gamified quest that takes a new customer from zero to a running vault. Share **<https://koyguy.github.io/embified/>** — a static site on GitHub Pages (HTTPS), built from [`site/`](../site/) by `.github/workflows/pages.yml`. Invite links use `SITE_URL` from [`site/config.js`](../site/config.js). Old vault links (`http://<vault>/start?ref=…`, `/vault`, `/create-vault`, `/cloud-setup`, `/home-setup`) 301 to the site (`PUBLIC_SITE_URL` env, default `https://koyguy.github.io/embified`). Hosting details, custom domain and analytics: [`PUBLIC_SITE.md`](PUBLIC_SITE.md).
 
 | Level | What the user does | XP |
@@ -109,7 +118,7 @@ Preferred for a greenfield tenancy: use the Terraform stack in [`infra/oci-resou
 
 1. Zip that folder and create an **OCI Resource Manager** stack (see the folder README).
 2. Apply → note `public_ip`.
-3. Wait for cloud-init, then set `EMBIFIED_AUTH_PASSWORD` in `/etc/embified/auth.env` **before** sharing the IP.
+3. Wait for cloud-init. If you set the stack variable `embified_auth_password` (letters, digits, `-`, `_`), cloud-init writes it to `/etc/embified/auth.env`; otherwise set `EMBIFIED_AUTH_PASSWORD` there **before** sharing the IP. The Cloud Shell launcher always sets it.
 4. Open `http://<public_ip>/login`; once the tunnel is up it forwards to the HTTPS `trycloudflare.com` URL (see [HTTPS inbox](#https-inbox-cloudflare-quick-tunnel)). Link WhatsApp as usual.
 
 Manual console steps below remain the fallback when ORM is unavailable.

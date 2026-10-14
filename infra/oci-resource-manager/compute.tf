@@ -28,8 +28,9 @@ resource "oci_core_instance" "vault" {
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
     user_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      embified_git_url = var.embified_git_url
-      embified_git_ref = var.embified_git_ref
+      embified_git_url       = var.embified_git_url
+      embified_git_ref       = var.embified_git_ref
+      embified_auth_password = var.embified_auth_password
     }))
   }
 

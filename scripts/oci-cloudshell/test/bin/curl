@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Fake curl: answers the vault health endpoint, passes everything else to real curl.
+for a in "$@"; do
+  if [[ $a == http://*/api/digest/health ]]; then
+    n=$(( $(cat "$FAKE_STATE/health" 2>/dev/null || echo 0) + 1 )); echo $n >"$FAKE_STATE/health"
+    if (( n < 3 )); then exit 7; fi
+    echo '{"ok":true,"whatsapp":"qr","publicUrl":"https://fake-vault.trycloudflare.com"}'; exit 0
+  fi
+done
+exec /usr/bin/curl "$@"

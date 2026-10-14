@@ -1,7 +1,7 @@
 title: "Embified Always Free vault"
 description: "VM + ~150 GB data volume + cloud-init install of embified."
 schemaVersion: 1.1.0
-version: "20260921"
+version: "20261015"
 locale: "en"
 variableGroups:
   - title: "Placement"
@@ -11,7 +11,7 @@ variableGroups:
   - title: "Access"
     variables: [ssh_public_key, allowed_ssh_cidr, allowed_http_cidr]
   - title: "App"
-    variables: [embified_git_url, embified_git_ref]
+    variables: [embified_auth_password, embified_git_url, embified_git_ref]
 variables:
   compartment_ocid:
     type: oci:identity:compartment:id
@@ -61,6 +61,12 @@ variables:
     type: boolean
     title: Assign public IP
     default: true
+  embified_auth_password:
+    type: password
+    title: Inbox password (optional)
+    description: Letters, digits, - and _ only. Leave empty to set it by hand after boot.
+    required: false
+    default: ""
   embified_git_url:
     type: string
     title: Git URL

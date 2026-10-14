@@ -89,7 +89,11 @@ write_files:
   - path: /etc/embified/auth.env
     permissions: "0600"
     content: |
+%{ if embified_auth_password != "" ~}
+      EMBIFIED_AUTH_PASSWORD=${embified_auth_password}
+%{ else ~}
       # Set EMBIFIED_AUTH_PASSWORD=... then: systemctl restart embified
+%{ endif ~}
 
 runcmd:
   - mkdir -p /etc/embified /opt
