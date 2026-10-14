@@ -57,8 +57,8 @@ variable "data_volume_size_in_gbs" {
 }
 
 variable "assign_public_ip" {
-  type        = bool
-  default     = true
+  type    = bool
+  default = true
 }
 
 variable "embified_git_url" {
@@ -79,4 +79,16 @@ variable "allowed_ssh_cidr" {
 variable "allowed_http_cidr" {
   type    = string
   default = "0.0.0.0/0"
+}
+
+variable "embified_auth_password" {
+  type        = string
+  description = "Inbox password written to /etc/embified/auth.env (letters, digits, - and _ only). Empty = set it by hand after boot."
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_-]*$", var.embified_auth_password))
+    error_message = "Use only letters, digits, - and _ in the inbox password."
+  }
 }

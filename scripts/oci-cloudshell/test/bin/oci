@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Fake `oci` for control-flow tests. State in $FAKE_STATE; scenario in $FAKE_SCENARIO
+# (ok | a1-capacity | all-capacity). Logs every call to $FAKE_STATE/calls.
+set -euo pipefail
+S="$FAKE_STATE"; echo "$*" >>"$S/calls"
+args=("$@"); while [[ "${args[0]:-}" == --region ]]; do args=("${args[@]:2}"); done
+cmd="${args[0]} ${args[1]} ${args[2]:-}"
+has() { [[ " ${args[*]} " == *" $1 "* ]]; }
+case "$cmd" in
+  "iam region-subscription list") echo ap-hyderabad-1 ;;
+  "iam compartment list") [[ -f "$S/comp" ]] && cat "$S/comp" || echo null ;;
+  "iam compartment create") echo ocid1.compartment.fake >"$S/comp"; cat "$S/comp" ;;
+  "iam availability-domain list") echo '["Xyz:AP-HYDERABAD-1-AD-1"]' ;;
+  "resource-manager stack list") [[ -f "$S/stack" ]] && cat "$S/stack" || echo null ;;
+  "resource-manager stack create") echo ocid1.ormstack.fake >"$S/stack"; for a in "${args[@]}"; do [[ $a == file://* ]] && cp "${a#file://}" "$S/vars.json"; done; cat "$S/stack" ;;
+  "resource-manager stack update") for a in "${args[@]}"; do [[ $a == file://* ]] && cp "${a#file://}" "$S/vars.json"; done; echo '{}' ;;
+  "resource-manager stack get") jq -r '.embified_auth_password' "$S/vars.json" ;;
+  "resource-manager job create-apply-job")
+     n=$(( $(cat "$S/jobs" 2>/dev/null || echo 0) + 1 )); echo $n >"$S/jobs"
+     shape=$(jq -r .shape "$S/vars.json"); st=SUCCEEDED
+     case "${FAKE_SCENARIO:-ok}" in a1-capacity) [[ $shape == *A1* ]] && st=FAILED ;; all-capacity) st=FAILED ;; esac
+     echo "$st" >"$S/job-$n"; echo "job-$n" ;;
+  "resource-manager job get") j=$(printf '%s\n' "${args[@]}" | grep '^job-'); cat "$S/${j}" ;;
+  "resource-manager job get-job-logs-content") echo "Error: 500-InternalError, Out of host capacity." ;;
+  "resource-manager job list") n=$(cat "$S/jobs" 2>/dev/null || echo 0); if [[ $n -gt 0 && $(cat "$S/job-$n") == SUCCEEDED ]]; then echo "{\"id\":\"job-$n\",\"lifecycle-state\":\"SUCCEEDED\"}"; else echo null; fi ;;
+  "resource-manager job get-job-tf-state") echo '{"outputs":{"public_ip":{"value":"198.51.100.7"}}}' ;;
+  *) echo "fake oci: unhandled: $*" >&2; exit 3 ;;
+esac

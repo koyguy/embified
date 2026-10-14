@@ -57,3 +57,9 @@ terraform init && terraform plan && terraform apply
 | `/var/lib/embified/tunnel-url.txt` | Current `https://*.trycloudflare.com` origin |
 
 Always Free idle reclaim still applies — keep light traffic or a digest ping (product backlog).
+
+## Inbox password variable
+
+`embified_auth_password` (optional, sensitive; letters, digits, `-`, `_`) is written by cloud-init to `/etc/embified/auth.env` as `EMBIFIED_AUTH_PASSWORD`. Empty keeps the old behaviour (set it by hand). The Cloud Shell launcher (`scripts/oci-cloudshell/`) always sets it.
+
+> Changing this variable (or any cloud-init input) on an existing stack changes `user_data`, which **replaces the VM** on the next apply (the /data volume is kept). The launcher reuses the original password to avoid that.
