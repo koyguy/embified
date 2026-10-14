@@ -16,8 +16,8 @@
   <body>
     <header class="topbar">
       <a class="brand" href="#top" aria-label="Embified home"><span class="logo">E</span> Embified</a>
-      <div class="xpchip" id="xpchip" title="Your quest progress">
-        <span class="bolt">⚡</span><span id="xp-top">0</span> XP
+      <div class="xpchip" id="xpchip" title="How much of your vault is built">
+        <span class="bolt">🛡️</span><span id="xp-top">0%</span> built
         <span class="minibar"><span id="minibar-fill"></span></span>
       </div>
     </header>
@@ -25,7 +25,7 @@
     <main id="top">
       <!-- HERO -->
       <section class="hero">
-        <div class="refbanner hidden" id="refbanner">🎁 A friend invited you — you start with <strong>+50 XP</strong>.</div>
+        <div class="refbanner hidden" id="refbanner">🎁 A friend sent you this: your own free vault for your WhatsApp group history.</div>
         <span class="pill">Free forever · Your own cloud</span>
         <p class="lead" style="margin:8px 0 0;font-size:.95rem">💬 Prefer to be guided in a chat? <a href="./">Chat with the Embified assistant</a> — it does the Oracle setup for you with one command.</p>
         <h1>Free 200 GB WhatsApp group vault on <span class="hl">your own cloud</span></h1>
@@ -78,10 +78,10 @@
         <div class="questhead card">
           <div class="qh-row">
             <div>
-              <div class="rank" id="rank">Newcomer</div>
+              <div class="rank" id="rank">Your vault is 0% built</div>
               <div class="fine tight"><span id="lvl-label">Level 1 of 7</span> · <span id="time-left">~35 min left</span></div>
             </div>
-            <div class="xpbig"><span id="xp">0</span><small>/ <span id="xp-max">1000</span> XP</small></div>
+            <div class="xpbig"><span id="xp">0%</span><small>built</small></div>
           </div>
           <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar"><span id="bar-fill"></span></div>
           <div class="badges" id="badges"></div>
@@ -90,7 +90,7 @@
         <ol class="levels" id="levels">
           <!-- L1 -->
           <li class="level" data-level="1">
-            <button class="lv-head" type="button"><span class="lv-num">1</span><span class="lv-title">Create your Oracle account</span><span class="lv-xp">+100 XP · ~10 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">1</span><span class="lv-title">Create your Oracle account</span><span class="lv-xp">~10 min</span></button>
             <div class="lv-body">
               <p>Sign up on <strong>Oracle’s own website</strong> (opens in a new tab). Embified never sees your Oracle password or card.</p>
               <div class="cta-row">
@@ -121,7 +121,7 @@
 
           <!-- L2 -->
           <li class="level" data-level="2">
-            <button class="lv-head" type="button"><span class="lv-num">2</span><span class="lv-title">Pass card verification</span><span class="lv-xp">+150 XP · ~3 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">2</span><span class="lv-title">Pass card verification</span><span class="lv-xp">~3 min</span></button>
             <div class="lv-body">
               <div class="callout">
                 <strong>Why a card?</strong> Oracle uses it only to check you’re a real person. You type it on Oracle’s page — Embified never sees or stores card details.
@@ -153,7 +153,7 @@
 
           <!-- L3 -->
           <li class="level" data-level="3">
-            <button class="lv-head" type="button"><span class="lv-num">3</span><span class="lv-title">Sign in to the Oracle console</span><span class="lv-xp">+50 XP · ~1 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">3</span><span class="lv-title">Sign in to the Oracle console</span><span class="lv-xp">~1 min</span></button>
             <div class="lv-body">
               <p>Once Oracle emails you that the account is ready, sign in on Oracle’s site.</p>
               <div class="cta-row"><a class="btn" href="https://cloud.oracle.com/" target="_blank" rel="noopener" id="console-link">Open Oracle Cloud console ↗</a></div>
@@ -167,7 +167,7 @@
 
           <!-- L4 -->
           <li class="level" data-level="4">
-            <button class="lv-head" type="button"><span class="lv-num">4</span><span class="lv-title">Copy your compartment OCID</span><span class="lv-xp">+100 XP · ~2 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">4</span><span class="lv-title">Copy your compartment OCID</span><span class="lv-xp">~2 min</span></button>
             <div class="lv-body">
               <p>The OCID tells the installer where to put your vault. For a personal vault, use your <strong>root compartment</strong> — its OCID is the same as your <strong>tenancy OCID</strong>.</p>
               <ol class="steps">
@@ -184,7 +184,7 @@
 
           <!-- L5 -->
           <li class="level" data-level="5">
-            <button class="lv-head" type="button"><span class="lv-num">5</span><span class="lv-title">Get your SSH key</span><span class="lv-xp">+100 XP · ~1 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">5</span><span class="lv-title">Get your SSH key</span><span class="lv-xp">~1 min</span></button>
             <div class="lv-body">
               <p>An SSH key is your private “house key” for the server. We can make one right here in your browser — it is never uploaded.</p>
               <div class="tabs" role="tablist">
@@ -210,7 +210,7 @@
 
           <!-- L6 -->
           <li class="level" data-level="6">
-            <button class="lv-head" type="button"><span class="lv-num">6</span><span class="lv-title">Launch your vault</span><span class="lv-xp">+250 XP · ~12 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">6</span><span class="lv-title">Launch your vault</span><span class="lv-xp">~12 min</span></button>
             <div class="lv-body">
               <p>One click opens Oracle’s <strong>Resource Manager</strong> with the Embified vault stack and your details pre-filled.</p>
               <div class="cta-row">
@@ -247,7 +247,7 @@
 
           <!-- L7 -->
           <li class="level" data-level="7">
-            <button class="lv-head" type="button"><span class="lv-num">7</span><span class="lv-title">Set your password &amp; link WhatsApp</span><span class="lv-xp">+250 XP · ~6 min</span></button>
+            <button class="lv-head" type="button"><span class="lv-num">7</span><span class="lv-title">Set your password &amp; link WhatsApp</span><span class="lv-xp">~6 min</span></button>
             <div class="lv-body">
               <p>Give the server <strong>5–10 minutes</strong> to install Embified after Apply. <a id="health-link" href="#" target="_blank" rel="noopener">Check if it’s up ↗</a> (shows <code>"ok":true</code>).</p>
               <h4>1 · Lock your inbox with a password</h4>
@@ -281,9 +281,9 @@
       <!-- WIN -->
       <section id="win" class="hidden">
         <div class="card wincard">
-          <div class="bigbadge">🏆</div>
-          <h2>Vault unlocked!</h2>
-          <p class="lead">You’re now a <strong>Vault Keeper</strong>. Your WhatsApp groups are being archived on your own server.</p>
+          <div class="bigbadge">🛡️</div>
+          <h2>Your vault is protected</h2>
+          <p class="lead">Your WhatsApp group history is now kept on <strong>your own server</strong>, nobody else’s. Switch or lose your phone and it’s still here.</p>
           <div class="cta-row center">
             <a class="btn" id="open-vault" href="#" target="_blank" rel="noopener">Open my vault ↗</a>
             <button type="button" class="btn ghost" id="replay">Review steps</button>
@@ -293,8 +293,8 @@
 
       <!-- INVITE -->
       <section class="card invite" id="invite">
-        <h3>👯 Invite a friend</h3>
-        <p class="fine tight">Every group has someone who loses history. Send them their own free vault — they start with +50 XP.</p>
+        <h3>🎁 Give a friend their own free vault</h3>
+        <p class="fine tight">Every group has someone who loses history. Send them their own free vault, so their history is safe too.</p>
         <div class="inline">
           <input id="share-url" readonly />
           <button type="button" class="btn small" id="copy-share">Copy</button>

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Update the Embified vault from origin/main. Installed on the VM as /usr/local/bin/embified-update
+# (the "Deploy embified-free" workflow copies this file from origin/main before running it).
+#  - Skips everything when the checkout is already at origin/main.
+#  - Moves the checkout but skips build + restart when only non-runtime files changed
+#    (site/, docs/, infra/, *.md, .github/, Cloud Shell launcher, e2e tests), so WhatsApp stays linked.
+#  - After a restart, polls /health then /api/digest/health for up to ${HEALTH_TIMEOUT:-90}s.
+set -euo pipefail
+APP_DIR="${APP_DIR:-/opt/embified}"
+BRANCH="${BRANCH:-main}"
+BASE="${HEALTH_BASE:-http://127.0.0.1}"
+TIMEOUT="${HEALTH_TIMEOUT:-90}"
+FORCE="${1:-}"
+cd "$APP_DIR"
+git config --global --add safe.directory "$APP_DIR" >/dev/null 2>&1 || true
+git fetch -q origin "$BRANCH"
+cur="$(git rev-parse HEAD)"
+new="$(git rev-parse "origin/$BRANCH")"
+echo "embified-update: current ${cur:0:7} → origin/$BRANCH ${new:0:7}"
+if [ "$cur" = "$new" ] && [ "$FORCE" != "--force" ]; then
+  echo "embified-update: already at ${new:0:7}; no restart"
+  exit 0
+fi
+
+runtime_changed=1
+if [ "$FORCE" != "--force" ] && git cat-file -e "$cur^{commit}" 2>/dev/null; then
+  runtime_changed=0
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    case "$f" in
+      site/*|docs/*|infra/*|.github/*|scripts/oci-cloudshell/*|scripts/site-e2e/*|scripts/embified-update|*.md) ;;
+      *) echo "embified-update: runtime file changed: $f"; runtime_changed=1; break ;;
+    esac
+  done < <(git diff --name-only "$cur" "$new")
+fi
+
+git reset -q --hard "origin/$BRANCH"
+if [ "$runtime_changed" = 0 ]; then
+  echo "embified-update: only site/docs/infra/workflow files changed; checkout moved, no rebuild or restart"
+  exit 0
+fi
+
+npm ci --no-audit --no-fund
+npm run build
+systemctl restart embified
+
+deadline=$(( $(date +%s) + TIMEOUT ))
+wait_for() {
+  local url="$1" body
+  while :; do
+    if body="$(curl -fsS -m 5 "$url" 2>/dev/null)"; then echo "embified-update: $url OK ${body:0:300}"; return 0; fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then echo "embified-update: $url not healthy after ${TIMEOUT}s" >&2; return 1; fi
+    sleep 3
+  done
+}
+if wait_for "$BASE/health" && wait_for "$BASE/api/digest/health"; then
+  echo "embified-update: deployed ${new:0:7}"
+else
+  systemctl --no-pager --full status embified | head -30 || true
+  exit 1
+fi

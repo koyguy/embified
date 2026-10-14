@@ -9,18 +9,15 @@
 
   const ZIP_URL = 'https://github.com/koyguy/embified/releases/download/orm-stack/embified-oci-stack.zip';
   const KEY = 'embified.start.v1';
-  const REF_BONUS = 50;
+  // Progress = how much of the customer's vault exists, weighted by honest time estimates. No points.
   const LEVELS = [
-    { n: 1, xp: 100, min: 10, badge: '🌱', name: 'Cloud Citizen' },
-    { n: 2, xp: 150, min: 3, badge: '💳', name: 'Verified Human' },
-    { n: 3, xp: 50, min: 1, badge: '🧭', name: 'Console Cadet' },
-    { n: 4, xp: 100, min: 2, badge: '🔎', name: 'OCID Hunter' },
-    { n: 5, xp: 100, min: 1, badge: '🔑', name: 'Keymaster' },
-    { n: 6, xp: 250, min: 12, badge: '🚀', name: 'Launch Commander' },
-    { n: 7, xp: 250, min: 6, badge: '🏆', name: 'Vault Keeper' },
-  ];
-  const RANKS = [
-    [0, 'Newcomer'], [100, 'Explorer'], [250, 'Verified'], [450, 'Builder'], [700, 'Launcher'], [1000, 'Vault Keeper'],
+    { n: 1, w: 15, min: 10, badge: '🌱', name: 'Free space claimed', won: 'Your Oracle account exists — your free space is waiting for you.' },
+    { n: 2, w: 15, min: 3, badge: '🔒', name: 'Locked with card check', won: 'Card check passed. Your free 150 GB allowance is reserved for you.' },
+    { n: 3, w: 5, min: 1, badge: '🧭', name: 'Console open', won: 'You are in your own cloud console.' },
+    { n: 4, w: 5, min: 2, badge: '🔎', name: 'Space located', won: 'Your vault now knows where it will live.' },
+    { n: 5, w: 10, min: 1, badge: '🔑', name: 'Keys made', won: 'Your keys are made. Only you hold them.' },
+    { n: 6, w: 30, min: 12, badge: '🏗️', name: 'Vault built', won: 'Your vault server is being built in your own account.' },
+    { n: 7, w: 20, min: 6, badge: '🛡️', name: 'Protected', won: 'WhatsApp connected. Your group history is now kept on your own server.' },
   ];
 
   // ---------- state ----------
@@ -60,15 +57,7 @@
 
   // ---------- helpers ----------
   const doneCount = () => LEVELS.filter((l) => state.done[l.n]).length;
-  function xp() {
-    return LEVELS.reduce((s, l) => s + (state.done[l.n] ? l.xp : 0), 0) + (state.ref ? REF_BONUS : 0);
-  }
-  const xpMax = () => LEVELS.reduce((s, l) => s + l.xp, 0) + (state.ref ? REF_BONUS : 0);
-  function rankFor(v) {
-    let r = RANKS[0][1];
-    for (const [t, name] of RANKS) if (v >= t) r = name;
-    return r;
-  }
+  const built = () => Math.min(100, LEVELS.reduce((s, l) => s + (state.done[l.n] ? l.w : 0), 0));
   const validOcid = (s) => /^ocid1\.(tenancy|compartment)\.oc[0-9]+\.[A-Za-z0-9._-]*\.[A-Za-z0-9]{20,}$/.test(s || '');
   const validSsh = (s) => /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/=]{40,}( .*)?$/.test((s || '').trim());
   const validHost = (s) => /^(\d{1,3}\.){3}\d{1,3}$/.test(s || '') || /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(s || '');
@@ -138,8 +127,6 @@
   // ---------- rendering ----------
   function renderBadges(popN) {
     const extra = [];
-    if (state.ref) extra.push({ k: 'ref', badge: '🎁', name: 'Invited', on: true });
-    extra.push({ k: 'share', badge: '📣', name: 'Ambassador', on: !!state.shared });
     const html = LEVELS.map((l) =>
       `<div class="badge ${state.done[l.n] ? 'on' : ''} ${popN === l.n ? 'pop' : ''}" title="Level ${l.n}"><i>${l.badge}</i>${l.name}</div>`
     ).concat(extra.map((b) => `<div class="badge ${b.on ? 'on' : ''} ${popN === b.k ? 'pop' : ''}"><i>${b.badge}</i>${b.name}</div>`));
@@ -147,19 +134,16 @@
   }
 
   function render(popN) {
-    const v = xp();
-    const max = xpMax();
-    const pct = Math.min(100, Math.round((v / max) * 100));
-    $('xp').textContent = v;
-    $('xp-top').textContent = v;
-    $('xp-max').textContent = max;
+    const pct = built();
+    $('xp').textContent = pct + '%';
+    $('xp-top').textContent = pct + '%';
     $('bar-fill').style.width = pct + '%';
     $('minibar-fill').style.width = pct + '%';
     $('bar').setAttribute('aria-valuenow', String(pct));
-    $('rank').textContent = rankFor(v);
+    $('rank').textContent = pct >= 100 ? 'Your vault is built and protected' : `Your vault is ${pct}% built`;
     const left = LEVELS.filter((l) => !state.done[l.n]).reduce((s, l) => s + l.min, 0);
     $('time-left').textContent = left ? `~${left} min left` : 'All done!';
-    $('lvl-label').textContent = `Level ${state.current} of ${LEVELS.length} · ${doneCount()} done`;
+    $('lvl-label').textContent = `Step ${state.current} of ${LEVELS.length} · ${doneCount()} done`;
     renderBadges(popN);
 
     $$('.level').forEach((li) => {
@@ -176,13 +160,13 @@
     const isDone = !!state.done[cur];
     const gate = gateFor(cur);
     $('nav-done').disabled = !isDone && !gate.ok;
-    $('nav-done').textContent = isDone ? (cur < 7 ? 'Next level →' : 'See my vault 🏆') : `I did this ✓ +${LEVELS[cur - 1].xp}`;
+    $('nav-done').textContent = isDone ? (cur < 7 ? 'Next step →' : 'See my vault card') : 'I did this ✓';
     $('nav-skip').classList.toggle('hidden', isDone || cur >= 7);
     $('nav-note').textContent = !isDone && !gate.ok ? gate.msg : '';
 
     // CTA
     const started = doneCount() > 0 || state.path === 'oracle';
-    $('cta-main').textContent = doneCount() === 7 ? 'Open my quest 🏆' : started ? `Continue — Level ${firstOpen()} →` : 'Start my free vault →';
+    $('cta-main').textContent = doneCount() === 7 ? 'Open my vault card' : started ? `Continue — step ${firstOpen()} →` : 'Start my free vault →';
     $('refbanner').classList.toggle('hidden', !state.ref);
     $$('.path').forEach((b) => b.classList.toggle('sel', b.dataset.path === state.path));
 
@@ -276,7 +260,7 @@
     // share
     const url = siteBase() + '/?ref=' + state.myRef;
     $('share-url').value = url;
-    const msg = 'I keep all my WhatsApp group history in a free 200 GB vault on my own cloud. Get yours free (~35 min, guided): ' + url;
+    const msg = 'I set up a free private vault that keeps our WhatsApp group history forever, on my own server, not some company\'s. WhatsApp only keeps history on your phone; lose or switch phones and it\'s gone. Yours is free and takes about 30 minutes: ' + url;
     $('wa-share').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
     render.shareMsg = msg; render.shareUrl = url;
   }
@@ -306,7 +290,7 @@
       unlock();
       return;
     }
-    toast(`+${l.xp} XP · ${l.badge} ${l.name} unlocked`);
+    toast(`${l.badge} ${l.won} Your vault is ${built()}% built.`);
     confetti(60, 0.55);
     const next = LEVELS.find((x) => x.n > n && !state.done[x.n]) || LEVELS.find((x) => !state.done[x.n]);
     state.current = next ? next.n : 7;
@@ -317,7 +301,7 @@
   function unlock() {
     $('win').classList.remove('hidden');
     track('unlocked');
-    toast('🏆 Vault unlocked! +1000 XP club');
+    toast('🛡️ Your vault is built and protected.');
     confetti(220, 0.3);
     setTimeout(() => confetti(160, 0.2), 700);
     setTimeout(() => $('win').scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
@@ -412,7 +396,7 @@
 
   function markShared() {
     track('share');
-    if (!state.shared) { state.shared = true; save(); render('share'); toast('📣 Ambassador badge unlocked'); confetti(50, 0.7); }
+    if (!state.shared) { state.shared = true; save(); render(); toast('Thanks — you just gave a friend their own free vault.'); }
   }
   $('copy-share').onclick = async () => { if (await copy($('share-url').value)) { toast('Invite link copied'); markShared(); } };
   $('wa-share').addEventListener('click', markShared);
@@ -430,7 +414,7 @@
   };
 
   // ---------- boot ----------
-  if (state.ref && !state.welcomed) { state.welcomed = true; save(); setTimeout(() => toast(`🎁 +${REF_BONUS} XP friend bonus`), 600); }
+  if (state.ref && !state.welcomed) { state.welcomed = true; save(); setTimeout(() => toast('🎁 A friend sent you your own free vault'), 600); }
   render();
   if (state.path === 'oracle' || doneCount() > 0 || location.hash === '#quest') openQuest(location.hash === '#quest');
   track('view');

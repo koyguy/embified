@@ -22,11 +22,20 @@ a { color: var(--accent); }
 .brand { display: flex; gap: 10px; align-items: center; color: var(--ink); text-decoration: none; }
 .brand small { display: block; font-size: 12px; color: var(--accent); }
 .logo { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #06210f; font-weight: 900; }
-.xpchip { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: var(--gold); border: 1px solid #3d3a1c; background: #1b1a0e; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
-.minibar { width: 44px; height: 6px; margin-left: 6px; border-radius: 9px; background: #3d3a1c; overflow: hidden; }
-#bar { display: block; height: 100%; width: 0; background: var(--gold); transition: width .5s; }
-.levelbar { display: flex; justify-content: space-between; max-width: 760px; width: 100%; margin: 0 auto; padding: 6px 16px 0; font-size: 12px; color: var(--muted); }
-#badges { letter-spacing: 2px; }
+.vaultchip { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--accent); }
+.vaultchip svg .arc { fill: none; stroke: #23402f; stroke-width: 4; stroke-linecap: round; transition: stroke .5s; }
+.vaultchip svg .arc.on { stroke: var(--accent); }
+.vaultchip svg .hub { fill: #10281c; stroke: #2b8a52; stroke-width: 1.5; transition: fill .5s; }
+.vaultchip svg .hub.on { fill: var(--gold); }
+.vaultbar { max-width: 760px; width: 100%; margin: 0 auto; padding: 8px 14px 0; }
+.stages { list-style: none; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 0; padding: 0; }
+.stages li { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px; border-radius: 10px; border: 1px dashed #24402f; color: var(--muted); text-align: center; font-size: 15px; transition: all .4s; }
+.stages li span[aria-hidden] { filter: grayscale(1); opacity: .45; transition: all .4s; }
+.stages li small { font-size: 9.5px; line-height: 1.15; }
+.stages li.on { border: 1px solid #2b8a52; background: #10281c; color: var(--ink); }
+.stages li.on span[aria-hidden] { filter: none; opacity: 1; }
+.vstatus { margin-top: 6px; font-size: 12.5px; color: var(--accent); font-weight: 700; text-align: center; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 main { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14px 18px; overflow-y: auto; }
 .msg { display: flex; margin: 6px 0; animation: pop .22s ease-out; }
 .msg .b { max-width: 86%; padding: 10px 13px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 5px; overflow-wrap: anywhere; }
@@ -47,7 +56,28 @@ main { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 14p
 .code code { flex: 1; font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: #b8f5cf; overflow-wrap: anywhere; }
 .copy { flex: none; border: 1px solid #2b8a52; background: #10281c; color: var(--ink); border-radius: 8px; padding: 6px 10px; font-weight: 700; cursor: pointer; }
 .copy.done { background: var(--accent); color: #06210f; }
-.badge { display: flex; gap: 10px; align-items: center; } .badge .big { font-size: 40px; }
+.msg.sys .b { border-radius: 14px; text-align: center; }
+.msg.sys .sub { font-weight: 600; font-size: 12px; color: var(--muted); }
+.vcard { margin: 2px 0; padding: 14px; border-radius: 16px; border: 1px solid var(--accent); background: linear-gradient(160deg, #143424, #0d1c15); }
+.vc-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; } .vc-head > span { font-size: 32px; }
+.vc-head small { display: block; color: var(--muted); font-size: 12px; }
+.vcard dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 8px 0; font-size: 14px; }
+.vcard dt { color: var(--muted); } .vcard dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.vc-note { font-size: 12.5px; color: var(--accent); margin: 6px 0 10px !important; }
+.vc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.savecard { font: inherit; font-weight: 800; padding: 9px 14px; border-radius: 12px; border: 0; background: var(--accent); color: #06210f; cursor: pointer; }
+.savecard.ghostbtn { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+blockquote.invite { margin: 6px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: #0d1c15; border-radius: 8px; font-size: 14px; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (min-width: 640px) { .stages li small { font-size: 11px; } }
+@media print {
+  body.printing { background: #fff; overflow: visible; }
+  body.printing > *:not(main) { display: none !important; }
+  body.printing main .msg { display: none; }
+  body.printing main .msg:has(.vcard.printme) { display: block; }
+  body.printing .vcard { color: #000; background: #fff; border-color: #000; } body.printing .vc-actions { display: none; }
+  body.printing .vcard dt, body.printing .vc-head small, body.printing .vc-note { color: #333; }
+}
 .composer { position: sticky; bottom: 0; width: 100%; background: rgba(11,20,16,.95); border-top: 1px solid var(--line); padding: 10px 14px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
 .replies, .inputrow, .tools { max-width: 760px; margin: 0 auto; }
 .replies { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }

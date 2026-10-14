@@ -52,7 +52,7 @@ terraform init && terraform plan && terraform apply
 | `/data/auth_info` | `AUTH_DIR` (Baileys session) |
 | `/opt/embified` | App checkout |
 | `/etc/embified/auth.env` | `EMBIFIED_AUTH_PASSWORD` (optional until set) |
-| `/usr/local/sbin/embified-update` | Pull `main`, rebuild, restart |
+| `/usr/local/sbin/embified-update` | Pull `main`, rebuild, restart (newer, health-polling version: `scripts/embified-update`; the deploy workflow installs it as `/usr/local/bin/embified-update`) |
 | `embified-tunnel.service` + `/usr/local/sbin/embified-tunnel-run` | Cloudflare quick tunnel → `http://127.0.0.1:80` |
 | `/var/lib/embified/tunnel-url.txt` | Current `https://*.trycloudflare.com` origin |
 
