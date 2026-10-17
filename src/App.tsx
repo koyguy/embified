@@ -167,6 +167,39 @@ export default function App() {
     return () => es.close();
   }, [mode]);
 
+  // Cloudflare quick tunnels (trycloudflare.com) don't stream server-sent events, so live updates
+  // never arrive over the https link. Poll the (small) group list and refetch the open chat only when
+  // its message count moved.
+  const countsRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    countsRef.current = Object.fromEntries(groups.map((g) => [g.id, g.messageCount]));
+  }, [groups]);
+  useEffect(() => {
+    if (mode === 'loading') return;
+    const t = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      fetch('/api/groups')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!d?.groups) return;
+          const id = activeRef.current;
+          const before = id ? countsRef.current[id] : undefined;
+          const now = id ? d.groups.find((g: GroupSummary) => g.id === id)?.messageCount : undefined;
+          setGroups(d.groups);
+          if (id && now !== undefined && now !== before) {
+            fetch(`/api/groups/${encodeURIComponent(id)}/messages`)
+              .then((r) => r.json())
+              .then((m) => {
+                if (activeRef.current === id) setMessages(m.messages || []);
+              })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }, 20000);
+    return () => clearInterval(t);
+  }, [mode]);
+
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
