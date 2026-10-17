@@ -104,7 +104,7 @@ function decodeSafe(s: string) {
 export function shareScopeGuard(req: Request, res: Response, next: NextFunction) {
   const share = shareOf(req);
   if (!share) return next();
-  res.setHeader('Cache-Control', 'no-store');
+  if (req.path !== '/api/events') res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Referrer-Policy', 'no-referrer');
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.status(403).json({ error: 'read-only shared view' });
