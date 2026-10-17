@@ -4,6 +4,7 @@
 #   sudo embified-share create --label "Embifi team" --group <id>@g.us --group-name "Exact name" --base http://<ip>
 #   sudo embified-share list
 #   sudo embified-share revoke sh_xxxxxxxxxxxx      # immediate; no restart
+#   sudo embified-share set-password sh_xxx [--stdin] | clear-password sh_xxx
 set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/embified}"
 if [ -z "${DATA_DIR:-}" ]; then

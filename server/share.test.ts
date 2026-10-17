@@ -49,6 +49,7 @@ before(async () => {
   // Mirror server.ts wiring: share link before the wall, guard right after it, owner-only routes after.
   const app = express();
   app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
   app.post('/auth/login', (_req, res) => {
     res.setHeader('Set-Cookie', auth.sessionCookieValue(auth.signSession()));
     res.end();
@@ -165,6 +166,170 @@ describe('scoped team session', () => {
     assert.equal((await get(mediaA, cookie)).status, 401);
     assert.equal((await get(`/api/groups/${encodeURIComponent(A)}/messages`, cookie)).status, 401);
     assert.equal((await get(`/s/${token}`)).status, 404);
+  });
+});
+
+const form = (pw: string, extra: Record<string, string> = {}) => ({
+  method: 'POST',
+  body: new URLSearchParams({ password: pw }).toString(),
+  headers: { 'content-type': 'application/x-www-form-urlencoded', ...extra },
+});
+
+describe('password helpers', () => {
+  it('stores scrypt hashes, verifies, and rejects bad input', async () => {
+    const h = await shares.hashSharePassword('correct horse 42');
+    assert.match(h, /^scrypt\$16384\$8\$1\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/);
+    assert.ok(!h.includes('correct'));
+    assert.equal(await shares.verifySharePassword('correct horse 42', h), true);
+    assert.equal(await shares.verifySharePassword('correct horse 43', h), false);
+    assert.equal(await shares.verifySharePassword('', h), false);
+    assert.equal(await shares.verifySharePassword('x', 'garbage'), false);
+    assert.equal(await shares.verifySharePassword('x', null), false);
+    await assert.rejects(shares.hashSharePassword('short'));
+    assert.notEqual(await shares.hashSharePassword('correct horse 42'), h, 'fresh salt each time');
+  });
+  it('generates human-friendly passwords', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const p = shares.generateSharePassword();
+      assert.match(p, /^[a-z]+-[a-z]+-[a-z]+-\d{2}$/);
+      seen.add(p);
+    }
+    assert.ok(seen.size > 45);
+  });
+});
+
+describe('password-protected share', () => {
+  let shareId = '';
+  let token = '';
+  let oldCookie = '';
+  const PW = 'maple-river-orbit-42';
+
+  before(async () => {
+    const out = shares.createShare({ label: 'Embifi 2W team', groupIds: [A, B] });
+    shareId = out.share.id;
+    token = out.token!;
+    oldCookie = await openShare(token); // opened before a password existed
+    assert.equal((await get('/api/groups', oldCookie)).status, 200);
+    await shares.setSharePassword(shareId, PW);
+    routes.resetAttempts();
+  });
+
+  it('stores only a hash and lists the share as protected', () => {
+    const raw = fs.readFileSync(shares.sharesFile(), 'utf8');
+    assert.ok(!raw.includes(PW));
+    assert.ok(shares.getActiveShare(shareId)!.passwordHash!.startsWith('scrypt$'));
+  });
+
+  it('invalidates sessions opened before the password was set', async () => {
+    assert.equal((await get('/api/groups', oldCookie)).status, 401);
+    assert.equal((await get(mediaA, oldCookie)).status, 401);
+    assert.equal((await get(`/api/groups/${encodeURIComponent(A)}/messages`, oldCookie)).status, 401);
+    const page = await get('/', oldCookie);
+    assert.equal(page.status, 401);
+    assert.match(await page.text(), /shared view has ended/);
+    assert.match(page.headers.get('set-cookie') || '', /^embified_share=; /);
+  });
+
+  it('opening the link shows a password page and grants nothing', async () => {
+    const r = await get(`/s/${token}`);
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('set-cookie'), null);
+    assert.equal(r.headers.get('cache-control'), 'no-store');
+    const html = await r.text();
+    assert.match(html, /type="password"/);
+    assert.match(html, /Embifi 2W team/);
+    assert.ok(!html.includes(token), 'token must not be echoed into the page');
+    // Old session in the browser does not bypass the page either.
+    const r2 = await get(`/s/${token}`, oldCookie);
+    assert.equal(r2.status, 200);
+  });
+
+  it('rejects a wrong password with no session', async () => {
+    const r = await get(`/s/${token}`, '', form('wrong-password-1'));
+    assert.equal(r.status, 401);
+    assert.equal(r.headers.get('set-cookie'), null);
+    assert.match(await r.text(), /Wrong password/);
+    const empty = await get(`/s/${token}`, '', form(''));
+    assert.equal(empty.status, 401);
+  });
+
+  it('correct password grants a scoped read-only session', async () => {
+    routes.resetAttempts();
+    const r = await get(`/s/${token}`, '', form(PW));
+    assert.equal(r.status, 303);
+    assert.equal(r.headers.get('location'), '/');
+    const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+    assert.match(cookie, /^embified_share=s2\./);
+    const d = await (await get('/api/groups', cookie)).json();
+    assert.deepEqual(d.groups.map((g: any) => g.id).sort(), [A, B].sort());
+    assert.equal((await get(`/api/groups/${encodeURIComponent(C)}/messages`, cookie)).status, 404);
+    assert.equal((await get('/api/status', cookie)).status, 403);
+    assert.equal((await get(mediaA, cookie)).status, 200);
+    // Unlocked browser reopening the link goes straight in.
+    const again = await get(`/s/${token}`, cookie);
+    assert.equal(again.status, 302);
+    assert.equal(again.headers.get('location'), '/');
+  });
+
+  it('changing the password signs everyone out; clearing restores link-only access', async () => {
+    routes.resetAttempts();
+    const r = await get(`/s/${token}`, '', form(PW));
+    const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+    assert.equal((await get('/api/groups', cookie)).status, 200);
+    await shares.setSharePassword(shareId, 'another-pass-77');
+    assert.equal((await get('/api/groups', cookie)).status, 401);
+    assert.equal((await get(`/s/${token}`, '', form(PW))).status, 401);
+    routes.resetAttempts();
+    const ok = await get(`/s/${token}`, '', form('another-pass-77'));
+    assert.equal(ok.status, 303);
+    shares.clearSharePassword(shareId);
+    assert.equal((await get(`/s/${token}`)).status, 302);
+    await shares.setSharePassword(shareId, PW);
+  });
+
+  it('backs off per share + IP after repeated failures', async () => {
+    routes.resetAttempts();
+    const ip = { 'x-forwarded-for': '203.0.113.9' };
+    for (let i = 0; i < 4; i++) assert.equal((await get(`/s/${token}`, '', form(`bad-guess-${i}`, ip))).status, 401);
+    const fifth = await get(`/s/${token}`, '', form('bad-guess-5', ip));
+    assert.equal(fifth.status, 401);
+    assert.match(await fifth.text(), /try again in/i);
+    // Locked: even the right password waits.
+    const locked = await get(`/s/${token}`, '', form(PW, ip));
+    assert.equal(locked.status, 429);
+    assert.ok(Number(locked.headers.get('retry-after')) > 0);
+    assert.equal(locked.headers.get('set-cookie'), null);
+  });
+
+  it('backoff grows and is keyed by share + client IP', () => {
+    routes.resetAttempts();
+    const s = shares.getActiveShare(shareId)!;
+    const t0 = 1_000_000;
+    for (let i = 0; i < 5; i++) routes.recordFailure(s, '198.51.100.1', t0);
+    assert.equal(routes.lockRemaining(s, '198.51.100.1', t0), 30_000);
+    routes.recordFailure(s, '198.51.100.1', t0 + 31_000);
+    assert.equal(routes.lockRemaining(s, '198.51.100.1', t0 + 31_000), 60_000);
+    assert.equal(routes.lockRemaining(s, '198.51.100.2', t0), 0);
+    for (let i = 0; i < 30; i++) routes.recordFailure(s, '198.51.100.1', t0 + 40_000);
+    assert.equal(routes.lockRemaining(s, '198.51.100.1', t0 + 40_000), 15 * 60_000);
+    routes.resetAttempts();
+  });
+
+  it('uses Cloudflare client IP only for loopback (tunnel) requests', () => {
+    const mk = (remote: string, cf?: string) => ({ socket: { remoteAddress: remote }, headers: cf ? { 'cf-connecting-ip': cf } : {}, ip: remote }) as any;
+    assert.equal(routes.clientIp(mk('127.0.0.1', '203.0.113.5')), '203.0.113.5');
+    assert.equal(routes.clientIp(mk('198.51.100.7', '203.0.113.5')), '198.51.100.7');
+  });
+
+  it('revoking still wins over the password', async () => {
+    routes.resetAttempts();
+    const r = await get(`/s/${token}`, '', form(PW));
+    const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+    shares.revokeShare(shareId);
+    assert.equal((await get('/api/groups', cookie)).status, 401);
+    assert.equal((await get(`/s/${token}`)).status, 404);
+    assert.equal((await get(`/s/${token}`, '', form(PW))).status, 404);
   });
 });
 
