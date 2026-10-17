@@ -71,7 +71,7 @@ jobs:
           envs: ACTION,SHARE_ID,LABEL,TOKEN_HASH,GROUP_HASHES
           script: |
             set -euo pipefail
-            redact='const a=JSON.parse(require("fs").readFileSync(0,"utf8"));const o=x=>({id:x.id,label:x.label,status:x.revoked?"revoked "+x.revoked:"active",groups:x.groupIds.length,created:x.created});console.log(JSON.stringify(Array.isArray(a)?a.map(o):o,null,1))'
+            redact='const a=JSON.parse(require("fs").readFileSync(0,"utf8"));const o=x=>({id:x.id,label:x.label,status:x.revoked?"revoked "+x.revoked:"active",groups:x.groupIds.length,created:x.created,password:x.passwordProtected?"yes":"no"});console.log(JSON.stringify(Array.isArray(a)?a.map(o):o,null,1))'
             case "$ACTION" in
               list) sudo embified-share list --json | node -e "$redact" ;;
               # Counts only: has any service log written a share path (token) in the last 2 days?

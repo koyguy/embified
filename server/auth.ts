@@ -132,6 +132,18 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ error: 'unauthorized', login: '/login' });
     return;
   }
+  // A teammate whose shared session ended (password set/changed, revoked, expired) should not land on the owner login.
+  if (parseCookies(req.headers.cookie)[SHARE_COOKIE]) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Set-Cookie', `${SHARE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${forceSecure() || req.secure ? '; Secure' : ''}`);
+    res.status(401).type('html').send(
+      '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shared view ended</title>' +
+        '<body style="font-family:system-ui;background:#0b141a;color:#e9edef;display:grid;place-items:center;height:100vh;margin:0">' +
+        '<div style="text-align:center;padding:24px"><h1 style="font-size:20px">Your shared view has ended</h1>' +
+        '<p style="color:#8696a0">Open the share link you were given again. It may now ask for a password.</p></div></body>'
+    );
+    return;
+  }
   const nextUrl = encodeURIComponent(req.originalUrl || '/');
   res.redirect(`/login?next=${nextUrl}`);
 }
