@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Owner CLI for read-only team share links on the vault host (installed as /usr/local/bin/embified-share
+# by embified-update). Uses the running service's DATA_DIR, so shares land next to the chats.
+#   sudo embified-share create --label "Embifi team" --group <id>@g.us --group-name "Exact name" --base http://<ip>
+#   sudo embified-share list
+#   sudo embified-share revoke sh_xxxxxxxxxxxx      # immediate; no restart
+set -euo pipefail
+APP_DIR="${APP_DIR:-/opt/embified}"
+if [ -z "${DATA_DIR:-}" ]; then
+  DATA_DIR="$(systemctl show embified -p Environment --value 2>/dev/null | tr ' ' '\n' | sed -n 's/^DATA_DIR=//p' | head -1 || true)"
+fi
+DATA_DIR="${DATA_DIR:-/data/store}"
+cd "$APP_DIR"
+exec env DATA_DIR="$DATA_DIR" ./node_modules/.bin/tsx server/share-cli.ts "$@"

@@ -351,3 +351,13 @@ body {
   opacity: 0.9;
 }
 .disk-meter:hover { text-decoration: underline; opacity: 1; }
+
+/* Read-only team share */
+.me.share-tag strong { color: var(--green); }
+.me.share-tag { max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) {
+  .me.share-tag { max-width: 60vw; }
+  .msgs .media img, .msgs .media video { max-width: 100%; height: auto; }
+}
+.chat-head .back { display: none; background: none; border: 0; color: var(--text); font-size: 30px; line-height: 1; padding: 0 6px 4px 0; cursor: pointer; }
+@media (max-width: 760px) { .chat-head .back { display: block; } }

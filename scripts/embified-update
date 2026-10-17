@@ -35,6 +35,8 @@ if [ "$FORCE" != "--force" ] && git cat-file -e "$cur^{commit}" 2>/dev/null; the
 fi
 
 git reset -q --hard "origin/$BRANCH"
+# Owner CLI for team share links (sudo embified-share list|create|revoke).
+[ -f scripts/embified-share ] && install -m 0755 scripts/embified-share /usr/local/bin/embified-share || true
 if [ "$runtime_changed" = 0 ]; then
   echo "embified-update: only site/docs/infra/workflow files changed; checkout moved, no rebuild or restart"
   exit 0

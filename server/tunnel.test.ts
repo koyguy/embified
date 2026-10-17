@@ -158,3 +158,22 @@ describe('https redirect middleware', () => {
     assert.equal((await req(port, 'GET', '/login', ext)).status, 200);
   });
 });
+
+describe('share links over the http IP', () => {
+  it('redirect keeps the /s/<token> path', async () => {
+    const { httpsRedirect, resetTunnelCache } = await import('./tunnel.ts');
+    const saved = process.env.EMBIFIED_PUBLIC_URL;
+    process.env.EMBIFIED_PUBLIC_URL = 'https://abc.trycloudflare.com';
+    resetTunnelCache();
+    const mw = httpsRedirect();
+    let location = '';
+    let status = 0;
+    const req: any = { secure: false, socket: { remoteAddress: '203.0.113.9' }, path: '/s/TokEn_123', originalUrl: '/s/TokEn_123', method: 'GET' };
+    const res: any = { setHeader() {}, redirect(s: number, u: string) { status = s; location = u; } };
+    mw(req, res, () => assert.fail('should redirect'));
+    assert.equal(status, 302);
+    assert.equal(location, 'https://abc.trycloudflare.com/s/TokEn_123');
+    if (saved === undefined) delete process.env.EMBIFIED_PUBLIC_URL; else process.env.EMBIFIED_PUBLIC_URL = saved;
+    resetTunnelCache();
+  });
+});
