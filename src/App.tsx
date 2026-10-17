@@ -63,6 +63,8 @@ function ProviderSwitch({
 }
 
 export default function App() {
+  const [mode, setMode] = useState<'loading' | 'owner' | 'share'>('loading');
+  const [shareLabel, setShareLabel] = useState('');
   const [status, setStatus] = useState<WaStatus>(emptyStatus);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [diskLabel, setDiskLabel] = useState<string | null>(null);
@@ -81,24 +83,44 @@ export default function App() {
   const activeRef = useRef<string | null>(null);
   activeRef.current = activeId;
 
+  // Owner or read-only team share? Decides which endpoints we may call at all.
   useEffect(() => {
-    fetch('/api/status')
+    fetch('/api/share/me')
       .then((r) => r.json())
-      .then(setStatus)
-      .catch(() => {});
+      .then((d) => {
+        if (d?.role === 'share') {
+          setShareLabel(String(d.label || ''));
+          setMode('share');
+        } else setMode('owner');
+      })
+      .catch(() => setMode('owner'));
+  }, []);
+
+  const isShare = mode === 'share';
+
+  useEffect(() => {
+    if (mode === 'loading') return;
+    if (!isShare) {
+      fetch('/api/status')
+        .then((r) => r.json())
+        .then(setStatus)
+        .catch(() => {});
+    }
     fetch('/api/groups')
       .then((r) => r.json())
       .then((d) => setGroups(d.groups || []))
       .catch(() => {});
 
-    fetch('/api/disk')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.ok && d.human) {
-          setDiskLabel(`${d.human.vault} of ${d.human.quota}`);
-        }
-      })
-      .catch(() => {});
+    if (!isShare) {
+      fetch('/api/disk')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.ok && d.human) {
+            setDiskLabel(`${d.human.vault} of ${d.human.quota}`);
+          }
+        })
+        .catch(() => {});
+    }
 
     const es = new EventSource('/api/events');
     es.addEventListener('status', (ev) => {
@@ -143,7 +165,7 @@ export default function App() {
       }
     });
     return () => es.close();
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     if (!activeId) {
@@ -154,8 +176,8 @@ export default function App() {
       .then((r) => r.json())
       .then((d) => setMessages(d.messages || []))
       .catch(() => setMessages([]));
-    fetch(`/api/groups/${encodeURIComponent(activeId)}/read`, { method: 'POST' }).catch(() => {});
-  }, [activeId]);
+    if (!isShare) fetch(`/api/groups/${encodeURIComponent(activeId)}/read`, { method: 'POST' }).catch(() => {});
+  }, [activeId, isShare]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -240,7 +262,20 @@ export default function App() {
   const active = groups.find((g) => g.id === activeId);
   const provider = status.provider || 'baileys';
 
-  if (!status.connected) {
+  if (mode === 'loading') {
+    return (
+      <div className="gate">
+        <div className="gate-card">
+          <div className="logo" style={{ margin: '0 auto 12px' }}>
+            E
+          </div>
+          <p>Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isShare && !status.connected) {
     return (
       <div className="gate">
         <div className="gate-card">
@@ -399,17 +434,26 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="me">
-            <strong>
-              <span className="dot on" />
-              {provider === 'cloud' ? 'Cloud API' : 'Linked'}
-            </strong>
-            {status.me?.name || status.me?.id || 'Business number'}
+          {isShare ? (
+            <div className="me share-tag" title="Read-only shared view">
+              <strong>Shared view · read-only</strong>
+              {shareLabel}
+            </div>
+          ) : (
+            <div className="me">
+              <strong>
+                <span className="dot on" />
+                {provider === 'cloud' ? 'Cloud API' : 'Linked'}
+              </strong>
+              {status.me?.name || status.me?.id || 'Business number'}
+            </div>
+          )}
+        </div>
+        {!isShare && (
+          <div className="provider-bar">
+            <ProviderSwitch provider={provider} disabled={switching} onPick={pickProvider} />
           </div>
-        </div>
-        <div className="provider-bar">
-          <ProviderSwitch provider={provider} disabled={switching} onPick={pickProvider} />
-        </div>
+        )}
         <div className="search">
           <input
             placeholder="Search conversations"
@@ -420,7 +464,9 @@ export default function App() {
         <div className="group-list">
           {filtered.length === 0 && (
             <p style={{ padding: 20, color: 'var(--muted)', fontSize: 14 }}>
-              {provider === 'cloud'
+              {isShare
+                ? 'No shared groups to show.'
+                : provider === 'cloud'
                 ? 'No Cloud API conversations yet. Incoming webhooks will show up here.'
                 : 'No groups yet. Add this number to a WhatsApp group — messages will show up here automatically.'}
             </p>
@@ -445,6 +491,14 @@ export default function App() {
             </button>
           ))}
         </div>
+        {isShare ? (
+          <div className="foot">
+            <span>{groups.length} shared group{groups.length === 1 ? '' : 's'}</span>
+            <a className="disk-meter" href="/auth/logout">
+              Leave
+            </a>
+          </div>
+        ) : (
         <div className="foot">
           <span>{groups.length} saved</span>
           {diskLabel && (
@@ -454,6 +508,7 @@ export default function App() {
           )}
           <span>{provider === 'cloud' ? 'official · Cloud API' : 'local · linked device'}</span>
         </div>
+        )}
       </aside>
 
       <section className="chat">
@@ -473,6 +528,9 @@ export default function App() {
         ) : (
           <>
             <div className="chat-head">
+              <button type="button" className="back" aria-label="Back to groups" onClick={() => setActiveId(null)}>
+                ‹
+              </button>
               <button
                 type="button"
                 className="avatar"

@@ -22,6 +22,8 @@ import {
 import { allowRate, appendEvent, readStats, sanitizeEvent } from './server/funnel.ts';
 import { marketingRedirectTarget, registerMarketingRedirects, rewriteLoginHtml } from './server/public-site.ts';
 import { configureProxyTrust, httpsRedirect, publicHttpsUrl } from './server/tunnel.ts';
+import { clearShareCookie } from './server/shares.ts';
+import { registerInboxRoutes, registerShareLink, shareOf, shareScopeGuard, shareStillActive } from './server/share-routes.ts';
 
 
 import fs from 'fs';
@@ -80,18 +82,23 @@ app.post('/auth/login', (req, res) => {
 });
 
 app.post('/auth/logout', (req, res) => {
-  res.setHeader('Set-Cookie', clearSessionCookie(req.secure));
+  res.setHeader('Set-Cookie', [clearSessionCookie(req.secure), clearShareCookie(req.secure)]);
   res.redirect('/login');
 });
 
 app.get('/auth/logout', (req, res) => {
-  res.setHeader('Set-Cookie', clearSessionCookie(req.secure));
+  res.setHeader('Set-Cookie', [clearSessionCookie(req.secure), clearShareCookie(req.secure)]);
   res.redirect('/login');
 });
 
-app.use(requireAuth);
+// Read-only team share links: /s/<token> → scoped session cookie (token never stored, only its hash).
+registerShareLink(app);
 
-app.use('/media', express.static(store.getMediaDir(), { maxAge: '7d' }));
+app.use(requireAuth);
+// Shared (team) sessions: default-deny to everything except their allowed groups' messages + media.
+app.use(shareScopeGuard);
+// /media, /api/share/me, /api/groups, /api/groups/:id/messages|read (owner + scoped).
+registerInboxRoutes(app);
 
 
 app.get('/api/whatsapp/webhook', handleCloudWebhookGet);
@@ -275,23 +282,12 @@ app.get('/api/funnel/stats', (_req, res) => {
   res.json(readStats());
 });
 
-app.get('/api/groups', (_req, res) => {
-  res.json({ groups: store.listGroups() });
-});
-
-app.get('/api/groups/:id/messages', (req, res) => {
-  const id = decodeURIComponent(req.params.id);
-  const messages = store.loadMessages(id);
-  store.markRead(id);
-  res.json({ messages });
-});
-
-app.post('/api/groups/:id/read', (req, res) => {
-  store.markRead(decodeURIComponent(req.params.id));
-  res.json({ ok: true, groups: store.listGroups() });
-});
-
 app.get('/api/events', (req, res) => {
+  const share = shareOf(req);
+  if (share) {
+    shareEvents(req, res, share);
+    return;
+  }
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -317,6 +313,49 @@ app.get('/api/events', (req, res) => {
     off();
   });
 });
+
+/** Scoped event stream: only allowed groups/messages, no link status; closes as soon as the share is revoked. */
+function shareEvents(req: express.Request, res: express.Response, share: NonNullable<ReturnType<typeof shareOf>>) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+  });
+  const allowed = new Set(share.groupIds);
+  const groups = () => store.listGroups().filter((g) => allowed.has(g.id)).map((g) => ({ ...g, unread: 0, participants: undefined }));
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    clearInterval(ping);
+    off();
+    try {
+      res.end();
+    } catch {
+      /* ignore */
+    }
+  };
+  res.write(`event: groups\ndata: ${JSON.stringify(groups())}\n\n`);
+  const off = onEvent((event, data: any) => {
+    if (!shareStillActive(share)) return close();
+    if (event === 'groups') res.write(`event: groups\ndata: ${JSON.stringify(groups())}\n\n`);
+    else if (event === 'message' && data && allowed.has(data.groupId)) {
+      res.write(`event: message\ndata: ${JSON.stringify(data)}\n\n`);
+    } else if (event === 'history') {
+      const hit = (data?.groups as string[] | undefined)?.filter((g) => allowed.has(g));
+      if (!data?.groups?.length || hit?.length) res.write(`event: history\ndata: ${JSON.stringify({ groups: hit || [] })}\n\n`);
+    }
+  });
+  const ping = setInterval(() => {
+    if (!shareStillActive(share)) return close();
+    try {
+      res.write(`: ping\n\n`);
+    } catch {
+      /* ignore */
+    }
+  }, 15000);
+  req.on('close', close);
+}
 
 async function start() {
   if (process.env.NODE_ENV !== 'production') {

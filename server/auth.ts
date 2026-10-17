@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
+import { SHARE_COOKIE, verifyShareSession, type Share } from './shares.ts';
 
 export const SESSION_COOKIE = 'embified_session';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -98,15 +99,35 @@ export function isPublicPath(p: string) {
   if (p === '/api/digest/health') return true;
   if (p.startsWith('/public/')) return true;
   if (p.startsWith('/auth/')) return true;
+  // Team share links (/s/<token>) are their own credential; see server/share-routes.ts.
+  if (p.startsWith('/s/')) return true;
   if (p.startsWith('/api/whatsapp/webhook')) return true;
   return false;
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!authEnabled()) return next();
-  if (isPublicPath(req.path)) return next();
+export type AuthContext = { role: 'owner' } | { role: 'share'; share: Share };
+
+/** Owner session wins; otherwise a live (non-revoked) team-share session; otherwise none. */
+export function authContext(req: Request): AuthContext | null {
+  if (!authEnabled()) return { role: 'owner' };
   const cookies = parseCookies(req.headers.cookie);
-  if (verifySession(cookies[SESSION_COOKIE])) return next();
+  if (verifySession(cookies[SESSION_COOKIE])) return { role: 'owner' };
+  const share = verifyShareSession(cookies[SHARE_COOKIE]);
+  if (share) return { role: 'share', share };
+  return null;
+}
+
+export function getAuth(req: Request): AuthContext | null {
+  return ((req as any).embAuth as AuthContext | undefined) ?? null;
+}
+
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (isPublicPath(req.path)) return next();
+  const ctx = authContext(req);
+  if (ctx) {
+    (req as any).embAuth = ctx;
+    return next();
+  }
   if (req.path.startsWith('/api/') || req.path.startsWith('/media')) {
     res.status(401).json({ error: 'unauthorized', login: '/login' });
     return;

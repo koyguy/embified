@@ -1,0 +1,92 @@
+name: Team share admin (embified-free)
+
+# Manage read-only team share links on the vault when you can't SSH in yourself.
+# This repo is public, so this workflow never sees or prints a share token, group names or group ids:
+#   create  → you pass sha256(token) and sha256(exact group name) values; the vault resolves the names
+#             and stores only the hash. Keep the token itself private (it is the link).
+#   list    → prints share ids, status and group counts only.
+#   audit   → counts log lines that contain a share path (should be 0).
+#   revoke  → share_id (e.g. sh_0123456789ab); takes effect immediately, no restart.
+# On the vault itself the same CLI is `sudo embified-share list|create|revoke`.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: create | list | revoke | audit
+        type: choice
+        options: [list, create, revoke, audit]
+        default: list
+      share_id:
+        description: "revoke: share id (sh_…)"
+        required: false
+      label:
+        description: "create: label shown in the shared view (letters, digits, spaces, . _ -)"
+        required: false
+      token_hash:
+        description: "create: sha256 hex of the share token"
+        required: false
+      group_name_hashes:
+        description: "create: comma-separated sha256 hex of exact group names"
+        required: false
+
+concurrency:
+  group: deploy-embified-free
+  cancel-in-progress: false
+
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        env:
+          ACTION: ${{ inputs.action }}
+          SHARE_ID: ${{ inputs.share_id }}
+          LABEL: ${{ inputs.label }}
+          TOKEN_HASH: ${{ inputs.token_hash }}
+          GROUP_HASHES: ${{ inputs.group_name_hashes }}
+        run: |
+          set -euo pipefail
+          case "$ACTION" in
+            list|audit) ;;
+            revoke) [[ "$SHARE_ID" =~ ^sh_[0-9a-f]{12}$ ]] || { echo "::error::bad share_id"; exit 1; } ;;
+            create)
+              [[ "$LABEL" =~ ^[A-Za-z0-9\ ._-]{1,80}$ ]] || { echo "::error::bad label"; exit 1; }
+              [[ "$TOKEN_HASH" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::bad token_hash"; exit 1; }
+              [[ "$GROUP_HASHES" =~ ^[0-9a-f]{64}(,[0-9a-f]{64}){0,9}$ ]] || { echo "::error::bad group_name_hashes"; exit 1; } ;;
+            *) echo "::error::bad action"; exit 1 ;;
+          esac
+
+      - name: Run on the vault
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          ACTION: ${{ inputs.action }}
+          SHARE_ID: ${{ inputs.share_id }}
+          LABEL: ${{ inputs.label }}
+          TOKEN_HASH: ${{ inputs.token_hash }}
+          GROUP_HASHES: ${{ inputs.group_name_hashes }}
+        with:
+          host: 144.24.138.220
+          username: ubuntu
+          key: ${{ secrets.EMBIFIED_SSH_KEY }}
+          envs: ACTION,SHARE_ID,LABEL,TOKEN_HASH,GROUP_HASHES
+          script: |
+            set -euo pipefail
+            redact='const a=JSON.parse(require("fs").readFileSync(0,"utf8"));const o=x=>({id:x.id,label:x.label,status:x.revoked?"revoked "+x.revoked:"active",groups:x.groupIds.length,created:x.created});console.log(JSON.stringify(Array.isArray(a)?a.map(o):o,null,1))'
+            case "$ACTION" in
+              list) sudo embified-share list --json | node -e "$redact" ;;
+              # Counts only: has any service log written a share path (token) in the last 2 days?
+              audit)
+                for u in embified embified-tunnel; do
+                  n="$(sudo journalctl -u "$u" --since '-2d' --no-pager -o cat 2>/dev/null | grep -cE '/s/[A-Za-z0-9_-]{20,}' || true)"
+                  echo "$u: $n log line(s) containing a share path"
+                done
+                f=/var/lib/embified/tunnel-url.txt; [ -f "$f" ] && echo "tunnel url file present" || true
+                ;;
+              revoke) sudo embified-share revoke "$SHARE_ID" ;;
+              create)
+                args=()
+                IFS=',' read -ra hs <<< "$GROUP_HASHES"
+                for h in "${hs[@]}"; do args+=(--group-name-sha256 "$h"); done
+                sudo embified-share create --json --label "$LABEL" --token-hash "$TOKEN_HASH" "${args[@]}" | node -e "$redact"
+                ;;
+            esac
