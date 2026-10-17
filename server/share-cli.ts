@@ -89,7 +89,7 @@ function main() {
     } else {
       console.log('\nToken supplied by hash; use the link you generated it for.');
     }
-    console.log(`\nRevoke: npm run -s share -- revoke ${share.id}`);
+    console.log(`\nRevoke: sudo embified-share revoke ${share.id}   (or: npm run -s share -- revoke ${share.id})`);
     return;
   }
   if (cmd === 'list') {

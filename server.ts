@@ -318,9 +318,13 @@ app.get('/api/events', (req, res) => {
 function shareEvents(req: express.Request, res: express.Response, share: NonNullable<ReturnType<typeof shareOf>>) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-store',
+    // Same caching header as the owner stream (proxies such as cloudflared stream no-cache SSE), no transforms.
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no',
     Connection: 'keep-alive',
   });
+  // Small shared streams can sit in proxy buffers; a 2 KB comment pushes the first events through.
+  res.write(`:${' '.repeat(2048)}\n\n`);
   const allowed = new Set(share.groupIds);
   const groups = () => store.listGroups().filter((g) => allowed.has(g.id)).map((g) => ({ ...g, unread: 0, participants: undefined }));
   let closed = false;
