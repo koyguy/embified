@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatMessage, GroupSummary, WaProvider, WaStatus } from './types';
 
 function formatTime(iso?: string) {
@@ -10,6 +10,76 @@ function formatTime(iso?: string) {
 function formatDay(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+
+const PAGE_SIZE = 200;
+
+function formatStamp(iso?: string) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function mediaLabel(m: ChatMessage) {
+  const kinds = [
+    ...(m.media || []).map((a) => a.kind),
+    ...(m.mediaUnavailable && !m.media?.length ? [m.mediaUnavailable.kind] : []),
+  ];
+  if (!kinds.length) return '';
+  const unique = [...new Set(kinds)];
+  return unique.length === 1 ? `${unique[0]} attachment` : `${unique.join(', ')} attachments`;
+}
+
+/** Prefill text only — never include media URLs, which are not public links. */
+function shareTextFor(m: ChatMessage, groupName?: string) {
+  const lines = [
+    groupName || 'WhatsApp group',
+    `From: ${m.fromMe ? 'Me' : m.authorName || m.from || 'Unknown'}`,
+    formatStamp(m.timestamp),
+  ];
+  if (m.text?.trim()) lines.push('', m.text.trim());
+  const media = mediaLabel(m);
+  if (media) {
+    lines.push('', `[${media} — file not included. Open it in Embified to view.]`);
+  }
+  const text = lines.join('\n').trim();
+  return text.length > 3500 ? `${text.slice(0, 3490)}…` : text;
+}
+
+async function shareToWhatsApp(m: ChatMessage, groupName?: string) {
+  const text = shareTextFor(m, groupName);
+  if (!text) return;
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      await navigator.share({ title: groupName || 'WhatsApp message', text });
+      return;
+    }
+  } catch (e: any) {
+    if (e?.name === 'AbortError') return;
+  }
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function mergeMessages(a: ChatMessage[], b: ChatMessage[]) {
+  const seen = new Set<string>();
+  const out: ChatMessage[] = [];
+  for (const m of [...a, ...b]) {
+    if (!m?.id || seen.has(m.id)) continue;
+    seen.add(m.id);
+    out.push(m);
+  }
+  out.sort((x, y) => Date.parse(x.timestamp) - Date.parse(y.timestamp) || x.id.localeCompare(y.id));
+  return out;
+}
+
+function fetchMessages(groupId: string, opts: { limit?: number; before?: string; after?: string; q?: string } = {}) {
+  const params = new URLSearchParams();
+  params.set('limit', String(opts.limit || PAGE_SIZE));
+  if (opts.before) params.set('before', opts.before);
+  if (opts.after) opts.after && params.set('after', opts.after);
+  if (opts.q?.trim()) params.set('q', opts.q.trim());
+  return fetch(`/api/groups/${encodeURIComponent(groupId)}/messages?${params}`).then((r) => r.json());
 }
 
 function initials(name: string) {
@@ -71,6 +141,11 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState('');
+  const [chatQuery, setChatQuery] = useState('');
+  const [debouncedChatQuery, setDebouncedChatQuery] = useState('');
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [searchTotal, setSearchTotal] = useState<number | null>(null);
   const [switching, setSwitching] = useState(false);
   const [token, setToken] = useState('');
   const [phoneNumberId, setPhoneNumberId] = useState('');
@@ -80,7 +155,12 @@ export default function App() {
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const msgsRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
+  const stickToBottom = useRef(true);
+  const countsRef = useRef<Record<string, number>>({});
+  const messagesTailRef = useRef<string | undefined>(undefined);
+  const debouncedChatQueryRef = useRef('');
   activeRef.current = activeId;
 
   // Owner or read-only team share? Decides which endpoints we may call at all.
@@ -122,99 +202,191 @@ export default function App() {
         .catch(() => {});
     }
 
-    const es = new EventSource('/api/events');
-    es.addEventListener('status', (ev) => {
-      try {
-        setStatus(JSON.parse((ev as MessageEvent).data));
-      } catch {
-        /* ignore */
+    let cancelled = false;
+    let esWorked = false;
+    let es: EventSource | null = new EventSource('/api/events');
+    let pollAbort: AbortController | null = null;
+
+    const applyEvent = (event: string, data: any) => {
+      if (event === 'status') {
+        try {
+          setStatus(data);
+        } catch {
+          /* ignore */
+        }
+        return;
       }
-    });
-    es.addEventListener('groups', (ev) => {
-      try {
-        setGroups(JSON.parse((ev as MessageEvent).data));
-      } catch {
-        /* ignore */
+      if (event === 'groups') {
+        if (!Array.isArray(data)) return;
+        const id = activeRef.current;
+        const before = id ? countsRef.current[id] : undefined;
+        const now = id ? data.find((g: GroupSummary) => g.id === id)?.messageCount : undefined;
+        setGroups(data);
+        if (id && now !== undefined && now !== before && !debouncedChatQueryRef.current) {
+          const last = messagesTailRef.current;
+          fetchMessages(id, last ? { after: last } : { limit: PAGE_SIZE })
+            .then((d) => {
+              if (activeRef.current !== id) return;
+              setMessages((prev) => mergeMessages(prev, d.messages || []));
+              if (!last) setHasMore(!!d.hasMore);
+            })
+            .catch(() => {});
+        }
+        return;
       }
-    });
-    es.addEventListener('message', (ev) => {
-      try {
-        const msg = JSON.parse((ev as MessageEvent).data) as ChatMessage;
+      if (event === 'message') {
+        const msg = data as ChatMessage;
         setMessages((prev) => {
           if (!activeRef.current || msg.groupId !== activeRef.current) return prev;
           if (prev.some((m) => m.id === msg.id)) return prev;
+          if (debouncedChatQueryRef.current) return prev;
           return [...prev, msg];
         });
-      } catch {
-        /* ignore */
+        return;
       }
-    });
-    // History sync merges older messages in bulk: refetch the open chat instead of appending.
-    es.addEventListener('history', (ev) => {
-      try {
-        const data = JSON.parse((ev as MessageEvent).data) as { groups?: string[] };
+      if (event === 'history') {
         const id = activeRef.current;
-        if (id && (!data.groups?.length || data.groups.includes(id))) {
-          fetch(`/api/groups/${encodeURIComponent(id)}/messages`)
-            .then((r) => r.json())
-            .then((d) => setMessages(d.messages || []))
+        if (id && (!data?.groups?.length || data.groups.includes(id))) {
+          fetchMessages(id, { q: debouncedChatQueryRef.current, limit: PAGE_SIZE })
+            .then((d) => {
+              if (activeRef.current === id) {
+                setMessages(d.messages || []);
+                setHasMore(!!d.hasMore);
+                if (debouncedChatQueryRef.current) setSearchTotal(d.total ?? null);
+                stickToBottom.current = true;
+              }
+            })
             .catch(() => {});
         }
-      } catch {
-        /* ignore */
       }
-    });
-    return () => es.close();
+    };
+
+    const listen = (target: EventSource) => {
+      for (const ev of ['status', 'groups', 'message', 'history']) {
+        target.addEventListener(ev, (e) => {
+          esWorked = true;
+          try {
+            applyEvent(ev, JSON.parse((e as MessageEvent).data));
+          } catch {
+            /* ignore */
+          }
+        });
+      }
+    };
+    listen(es);
+
+    const startLongPoll = () => {
+      if (cancelled || pollAbort) return;
+      pollAbort = new AbortController();
+      const signal = pollAbort.signal;
+      (async () => {
+        while (!cancelled && !signal.aborted) {
+          try {
+            const r = await fetch('/api/events/poll?wait=25000', { signal });
+            if (!r.ok) {
+              await new Promise((res) => setTimeout(res, 3000));
+              continue;
+            }
+            const d = await r.json();
+            for (const ev of d.events || []) applyEvent(ev.event, ev.data);
+          } catch (e: any) {
+            if (cancelled || signal.aborted) return;
+            await new Promise((res) => setTimeout(res, 2000));
+          }
+        }
+      })();
+    };
+
+    const fallback = window.setTimeout(() => {
+      if (cancelled || esWorked) return;
+      es?.close();
+      es = null;
+      startLongPoll();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(fallback);
+      es?.close();
+      pollAbort?.abort();
+    };
   }, [mode]);
 
-  // Cloudflare quick tunnels (trycloudflare.com) don't stream server-sent events, so live updates
-  // never arrive over the https link. Poll the (small) group list and refetch the open chat only when
-  // its message count moved.
-  const countsRef = useRef<Record<string, number>>({});
   useEffect(() => {
     countsRef.current = Object.fromEntries(groups.map((g) => [g.id, g.messageCount]));
   }, [groups]);
   useEffect(() => {
-    if (mode === 'loading') return;
-    const t = setInterval(() => {
-      if (document.visibilityState === 'hidden') return;
-      fetch('/api/groups')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          if (!d?.groups) return;
-          const id = activeRef.current;
-          const before = id ? countsRef.current[id] : undefined;
-          const now = id ? d.groups.find((g: GroupSummary) => g.id === id)?.messageCount : undefined;
-          setGroups(d.groups);
-          if (id && now !== undefined && now !== before) {
-            fetch(`/api/groups/${encodeURIComponent(id)}/messages`)
-              .then((r) => r.json())
-              .then((m) => {
-                if (activeRef.current === id) setMessages(m.messages || []);
-              })
-              .catch(() => {});
-          }
-        })
-        .catch(() => {});
-    }, 20000);
-    return () => clearInterval(t);
-  }, [mode]);
+    messagesTailRef.current = messages.length ? messages[messages.length - 1].id : undefined;
+  }, [messages]);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedChatQuery(chatQuery), 250);
+    return () => window.clearTimeout(t);
+  }, [chatQuery]);
+  useEffect(() => {
+    debouncedChatQueryRef.current = debouncedChatQuery;
+  }, [debouncedChatQuery]);
 
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
+      setHasMore(false);
+      setSearchTotal(null);
+      setChatQuery('');
+      setDebouncedChatQuery('');
       return;
     }
-    fetch(`/api/groups/${encodeURIComponent(activeId)}/messages`)
-      .then((r) => r.json())
-      .then((d) => setMessages(d.messages || []))
-      .catch(() => setMessages([]));
-    if (!isShare) fetch(`/api/groups/${encodeURIComponent(activeId)}/read`, { method: 'POST' }).catch(() => {});
-  }, [activeId, isShare]);
+    const id = activeId;
+    const q = debouncedChatQuery;
+    let cancelled = false;
+    fetchMessages(id, { q, limit: PAGE_SIZE })
+      .then((d) => {
+        if (cancelled || activeRef.current !== id) return;
+        setMessages(d.messages || []);
+        setHasMore(!!d.hasMore);
+        setSearchTotal(q.trim() ? d.total ?? (d.messages || []).length : null);
+        stickToBottom.current = !q.trim();
+      })
+      .catch(() => {
+        if (!cancelled) setMessages([]);
+      });
+    if (!isShare) fetch(`/api/groups/${encodeURIComponent(id)}/read`, { method: 'POST' }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, isShare, debouncedChatQuery]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!stickToBottom.current) return;
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages.length, activeId]);
+
+  const loadOlder = useCallback(() => {
+    const id = activeRef.current;
+    const el = msgsRef.current;
+    if (!id || !hasMore || loadingMore || !messages[0]) return;
+    setLoadingMore(true);
+    const prevHeight = el?.scrollHeight || 0;
+    const before = messages[0].id;
+    fetchMessages(id, { before, q: debouncedChatQuery, limit: PAGE_SIZE })
+      .then((d) => {
+        const incoming: ChatMessage[] = d.messages || [];
+        setMessages((prev) => mergeMessages(incoming, prev));
+        setHasMore(!!d.hasMore);
+        requestAnimationFrame(() => {
+          if (el) el.scrollTop = el.scrollHeight - prevHeight;
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  }, [hasMore, loadingMore, messages, debouncedChatQuery]);
+
+  const onMsgsScroll = () => {
+    const el = msgsRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (el.scrollTop < 80) loadOlder();
+  };
+
 
   const pickProvider = async (provider: WaProvider) => {
     if (provider === status.provider || switching) return;
@@ -508,7 +680,13 @@ export default function App() {
             <button
               key={g.id}
               className={`group-row ${g.id === activeId ? 'active' : ''}`}
-              onClick={() => setActiveId(g.id)}
+              onClick={() => {
+                if (g.id !== activeId) {
+                  setChatQuery('');
+                  setDebouncedChatQuery('');
+                }
+                setActiveId(g.id);
+              }}
             >
               <div className="avatar">{initials(g.name || 'G')}</div>
               <div className="g-main">
@@ -572,16 +750,33 @@ export default function App() {
               >
                 {initials(active.name)}
               </button>
-              <div>
+              <div className="chat-head-copy">
                 <h1>{active.name}</h1>
                 <p>
                   {active.kind === 'dm' ? '1:1 · ' : ''}
                   {active.memberCount ? `${active.memberCount} members · ` : ''}
-                  {active.messageCount} saved
+                  {searchTotal !== null ? `${searchTotal} match${searchTotal === 1 ? '' : 'es'}` : `${active.messageCount} saved`}
                 </p>
               </div>
+              <div className="chat-head-search">
+                <input
+                  type="search"
+                  placeholder="Search messages"
+                  value={chatQuery}
+                  onChange={(e) => setChatQuery(e.target.value)}
+                  aria-label="Search messages in this chat"
+                />
+              </div>
             </div>
-            <div className="msgs">
+            <div className="msgs" ref={msgsRef} onScroll={onMsgsScroll}>
+              {hasMore && (
+                <button type="button" className="load-more" onClick={loadOlder} disabled={loadingMore}>
+                  {loadingMore ? 'Loading earlier messages…' : 'Load earlier messages'}
+                </button>
+              )}
+              {debouncedChatQuery.trim() && messages.length === 0 && (
+                <div className="day">No messages matched “{debouncedChatQuery.trim()}”</div>
+              )}
               {messages.map((m, i) => {
                 const prev = messages[i - 1];
                 const showDay = !prev || formatDay(prev.timestamp) !== formatDay(m.timestamp);
@@ -612,7 +807,18 @@ export default function App() {
                         </div>
                       ) : null}
                       {m.text ? <div className="body">{m.text}</div> : null}
-                      <div className="meta">{formatTime(m.timestamp)}</div>
+                      <div className="meta">
+                        <button
+                          type="button"
+                          className="share-wa"
+                          aria-label="Share to WhatsApp"
+                          title="Share to WhatsApp"
+                          onClick={() => shareToWhatsApp(m, active.name)}
+                        >
+                          Share
+                        </button>
+                        <span>{formatTime(m.timestamp)}</span>
+                      </div>
                     </div>
                   </React.Fragment>
                 );

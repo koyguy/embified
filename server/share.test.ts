@@ -58,6 +58,7 @@ before(async () => {
   app.use(auth.requireAuth);
   app.use(routes.shareScopeGuard);
   routes.registerInboxRoutes(app);
+  app.get('/api/events/poll', (_req, res) => res.json({ events: [] }));
   const owner = (_req: express.Request, res: express.Response) => res.json({ owner: true });
   for (const p of ['/api/status', '/api/cloud-config', '/api/disk', '/api/digest', '/api/history/status', '/api/funnel/stats']) app.get(p, owner);
   for (const p of ['/api/provider', '/api/cloud-config', '/api/whatsapp/reset', '/api/history/backfill']) app.post(p, owner);
@@ -138,6 +139,21 @@ describe('scoped team session', () => {
     assert.equal((await get(mediaC, cookie)).status, 404);
     assert.equal((await get('/media/../groups.json', cookie)).status, 404);
     assert.equal((await get('/media/%2e%2e%2fgroups.json', cookie)).status, 404);
+  });
+
+  it('paginates and searches allowed messages, still hiding other groups', async () => {
+    const page = await (await get(`/api/groups/${encodeURIComponent(A)}/messages?limit=1`, cookie)).json();
+    assert.equal(page.messages.length, 1);
+    assert.equal(page.messages[0].text, 't-a1');
+    assert.equal(page.hasMore, false);
+    assert.equal(page.total, 1);
+    const found = await (await get(`/api/groups/${encodeURIComponent(A)}/messages?q=t-a1`, cookie)).json();
+    assert.equal(found.total, 1);
+    const miss = await (await get(`/api/groups/${encodeURIComponent(A)}/messages?q=no-such-text`, cookie)).json();
+    assert.equal(miss.total, 0);
+    assert.equal(miss.messages.length, 0);
+    assert.equal((await get(`/api/groups/${encodeURIComponent(C)}/messages?q=t-c1`, cookie)).status, 404);
+    assert.equal((await get('/api/events/poll?wait=1000', cookie)).status, 200);
   });
 
   it('cannot reach settings, link controls, digest, backfill or funnel', async () => {

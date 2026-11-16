@@ -65,16 +65,83 @@ export function upsertGroup(partial: Partial<GroupRecord> & { id: string; name: 
   return map[partial.id];
 }
 
+const messageCache = new Map<string, { mtimeMs: number; size: number; messages: ChatMessage[] }>();
+
 export function loadMessages(groupId: string): ChatMessage[] {
+  const file = chatsFile(groupId);
   try {
-    return JSON.parse(fs.readFileSync(chatsFile(groupId), 'utf8'));
+    const st = fs.statSync(file);
+    const hit = messageCache.get(file);
+    if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.messages;
+    const messages: ChatMessage[] = JSON.parse(fs.readFileSync(file, 'utf8'));
+    messageCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, messages });
+    return messages;
   } catch {
+    messageCache.delete(file);
     return [];
   }
 }
 
+export const DEFAULT_PAGE_SIZE = 200;
+export const MAX_PAGE_SIZE = 500;
+
+export interface MessagePage {
+  messages: ChatMessage[];
+  hasMore: boolean;
+  hasNewer: boolean;
+  total: number;
+}
+
+function clampPageSize(n?: number) {
+  if (n === undefined || !Number.isFinite(n)) return DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(n)));
+}
+
+/**
+ * Paginated / searched view of a chat. Messages are stored oldest → newest.
+ *  - default: the latest `limit` messages (hasMore if older ones exist)
+ *  - before=<id>: older page ending just before that message
+ *  - after=<id>: newer messages after that message (live catch-up)
+ *  - q: case-insensitive match on text, author, or attachment file name
+ */
+export function queryMessages(
+  groupId: string,
+  opts: { limit?: number; before?: string; after?: string; q?: string } = {}
+): MessagePage {
+  let all = loadMessages(groupId);
+  const q = opts.q?.trim().toLowerCase() || '';
+  if (q) {
+    all = all.filter((m) => {
+      if ((m.text || '').toLowerCase().includes(q)) return true;
+      if ((m.authorName || '').toLowerCase().includes(q)) return true;
+      if (m.media?.some((a) => (a.fileName || '').toLowerCase().includes(q))) return true;
+      if ((m.mediaUnavailable?.fileName || '').toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }
+  const limit = clampPageSize(opts.limit);
+
+  if (opts.after) {
+    let start = all.findIndex((m) => m.id === opts.after);
+    start = start >= 0 ? start + 1 : all.findIndex((m) => tsOf(m.timestamp) > tsOf(opts.after));
+    if (start < 0) start = all.length;
+    const messages = all.slice(start, start + limit);
+    return { messages, hasMore: start > 0, hasNewer: start + messages.length < all.length, total: all.length };
+  }
+
+  let end = all.length;
+  if (opts.before) {
+    const i = all.findIndex((m) => m.id === opts.before);
+    if (i >= 0) end = i;
+  }
+  const start = Math.max(0, end - limit);
+  return { messages: all.slice(start, end), hasMore: start > 0, hasNewer: end < all.length, total: all.length };
+}
+
 function saveMessages(groupId: string, messages: ChatMessage[]) {
-  writeJsonAtomic(chatsFile(groupId), messages);
+  const file = chatsFile(groupId);
+  writeJsonAtomic(file, messages);
+  messageCache.delete(file);
 }
 
 function previewOf(msg: ChatMessage) {
