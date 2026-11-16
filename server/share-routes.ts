@@ -17,7 +17,7 @@ import {
   verifyShareSession,
   type Share,
 } from './shares.ts';
-import type { ChatMessage, GroupSummary } from '../src/types.ts';
+import type { GroupSummary } from '../src/types.ts';
 
 /**
  * Routes shared by the owner inbox and read-only team shares, plus the scope guard.
@@ -103,7 +103,7 @@ function decodeSafe(s: string) {
 
 /**
  * Mount right after requireAuth. Owner requests pass untouched. Shared sessions may only:
- *   GET /api/share/me, GET /api/groups, GET /api/groups/<allowed>/messages, GET /api/events,
+ *   GET /api/share/me, GET /api/groups, GET /api/groups/<allowed>/messages, GET /api/events, GET /api/events/poll,
  *   GET /media/<file of an allowed group>, and the SPA shell (non-/api, non-/media GETs).
  * Everything else → 403 (owner-only) or 404 (other groups / media).
  */
@@ -124,7 +124,7 @@ export function shareScopeGuard(req: Request, res: Response, next: NextFunction)
     return;
   }
   if (p.startsWith('/api/')) {
-    if (p === '/api/share/me' || p === '/api/groups' || p === '/api/events') return next();
+    if (p === '/api/share/me' || p === '/api/groups' || p === '/api/events' || p === '/api/events/poll') return next();
     const m = MESSAGES_RE.exec(p);
     if (m) {
       const id = decodeSafe(m[1]);
@@ -330,10 +330,22 @@ export function registerInboxRoutes(app: Express) {
       res.status(404).json(NOT_FOUND);
       return;
     }
-    const messages: ChatMessage[] = store.loadMessages(id);
+    const q = typeof req.query.q === 'string' ? req.query.q : '';
+    const before = typeof req.query.before === 'string' ? req.query.before : undefined;
+    const after = typeof req.query.after === 'string' ? req.query.after : undefined;
+    const rawLimit = req.query.limit;
+    let limit: number | undefined;
+    if (typeof rawLimit === 'string' && rawLimit.trim()) {
+      limit = Number(rawLimit);
+      if (!Number.isFinite(limit)) {
+        res.status(400).json({ error: 'invalid limit' });
+        return;
+      }
+    }
+    const page = store.queryMessages(id, { limit, before, after, q });
     // A teammate reading must not clear the owner's unread badge.
     if (ctx?.role === 'owner') store.markRead(id);
-    res.json({ messages });
+    res.json(page);
   });
 
   app.post('/api/groups/:id/read', (req, res) => {
