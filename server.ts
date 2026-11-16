@@ -282,84 +282,113 @@ app.get('/api/funnel/stats', (_req, res) => {
   res.json(readStats());
 });
 
+const SSE_HEADERS = {
+  'Content-Type': 'text/event-stream',
+  'Cache-Control': 'no-cache, no-transform',
+  'X-Accel-Buffering': 'no',
+  Connection: 'keep-alive',
+} as const;
+
+function publicGroupsForShare(groupIds: string[]) {
+  const allowed = new Set(groupIds);
+  return store
+    .listGroups()
+    .filter((g) => allowed.has(g.id))
+    .map((g) => ({ ...g, unread: 0, participants: undefined }));
+}
+
+/** Filter live events for an owner (everything) or a team share (allowed groups only; no link status). */
+function liveEvent(share: ReturnType<typeof shareOf>, event: string, data: any): { event: string; data: unknown } | null {
+  if (!share) return { event, data };
+  const allowed = new Set(share.groupIds);
+  if (event === 'groups') return { event, data: publicGroupsForShare(share.groupIds) };
+  if (event === 'message' && data && allowed.has(data.groupId)) return { event, data };
+  if (event === 'history') {
+    const hit = (data?.groups as string[] | undefined)?.filter((g) => allowed.has(g));
+    if (!data?.groups?.length || hit?.length) return { event, data: { groups: hit || [] } };
+  }
+  return null;
+}
+
 app.get('/api/events', (req, res) => {
   const share = shareOf(req);
-  if (share) {
-    shareEvents(req, res, share);
+  if (share && !shareStillActive(share)) {
+    res.status(404).json({ error: 'not found' });
     return;
   }
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-  res.write(`event: status\ndata: ${JSON.stringify(getStatus())}\n\n`);
-  res.write(`event: groups\ndata: ${JSON.stringify(store.listGroups())}\n\n`);
-
-  const off = onEvent((event, data) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  });
-
-  const ping = setInterval(() => {
-    try {
-      res.write(`: ping\n\n`);
-    } catch {
-      /* ignore */
-    }
-  }, 20000);
-
-  req.on('close', () => {
-    clearInterval(ping);
-    off();
-  });
-});
-
-/** Scoped event stream: only allowed groups/messages, no link status; closes as soon as the share is revoked. */
-function shareEvents(req: express.Request, res: express.Response, share: NonNullable<ReturnType<typeof shareOf>>) {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    // Same caching header as the owner stream (proxies such as cloudflared stream no-cache SSE), no transforms.
-    'Cache-Control': 'no-cache, no-transform',
-    'X-Accel-Buffering': 'no',
-    Connection: 'keep-alive',
-  });
-  // Small shared streams can sit in proxy buffers; a 2 KB comment pushes the first events through.
+  res.writeHead(200, SSE_HEADERS);
+  // 2 KB comment helps proxies (including cloudflared) flush the first events.
   res.write(`:${' '.repeat(2048)}\n\n`);
-  const allowed = new Set(share.groupIds);
-  const groups = () => store.listGroups().filter((g) => allowed.has(g.id)).map((g) => ({ ...g, unread: 0, participants: undefined }));
-  let closed = false;
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    clearInterval(ping);
-    off();
-    try {
-      res.end();
-    } catch {
-      /* ignore */
-    }
-  };
-  res.write(`event: groups\ndata: ${JSON.stringify(groups())}\n\n`);
+  if (share) {
+    res.write(`event: groups\ndata: ${JSON.stringify(publicGroupsForShare(share.groupIds))}\n\n`);
+  } else {
+    res.write(`event: status\ndata: ${JSON.stringify(getStatus())}\n\n`);
+    res.write(`event: groups\ndata: ${JSON.stringify(store.listGroups())}\n\n`);
+  }
   const off = onEvent((event, data: any) => {
-    if (!shareStillActive(share)) return close();
-    if (event === 'groups') res.write(`event: groups\ndata: ${JSON.stringify(groups())}\n\n`);
-    else if (event === 'message' && data && allowed.has(data.groupId)) {
-      res.write(`event: message\ndata: ${JSON.stringify(data)}\n\n`);
-    } else if (event === 'history') {
-      const hit = (data?.groups as string[] | undefined)?.filter((g) => allowed.has(g));
-      if (!data?.groups?.length || hit?.length) res.write(`event: history\ndata: ${JSON.stringify({ groups: hit || [] })}\n\n`);
+    if (share && !shareStillActive(share)) {
+      try { res.end(); } catch { /* ignore */ }
+      return;
     }
+    const ev = liveEvent(share, event, data);
+    if (ev) res.write(`event: ${ev.event}\ndata: ${JSON.stringify(ev.data)}\n\n`);
   });
   const ping = setInterval(() => {
-    if (!shareStillActive(share)) return close();
+    if (share && !shareStillActive(share)) {
+      try { res.end(); } catch { /* ignore */ }
+      return;
+    }
     try {
       res.write(`: ping\n\n`);
     } catch {
       /* ignore */
     }
   }, 15000);
-  req.on('close', close);
-}
+  req.on('close', () => {
+    clearInterval(ping);
+    off();
+  });
+});
+
+/** Complete-response long poll. Use when a proxy buffers SSE (Cloudflare quick tunnels often do). */
+app.get('/api/events/poll', (req, res) => {
+  const share = shareOf(req);
+  if (share && !shareStillActive(share)) {
+    res.status(404).json({ error: 'not found' });
+    return;
+  }
+  const waitRaw = Number(req.query.wait);
+  const wait = Math.min(25_000, Math.max(1_000, Number.isFinite(waitRaw) ? waitRaw : 25_000));
+  const events: { event: string; data: unknown }[] = [];
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timer);
+    off();
+    if (!res.headersSent) res.setHeader('Cache-Control', 'no-store');
+    if (!res.writableEnded) res.json({ events });
+  };
+  const off = onEvent((event, data: any) => {
+    if (share && !shareStillActive(share)) {
+      if (!finished) {
+        finished = true;
+        clearTimeout(timer);
+        off();
+        if (!res.headersSent) res.setHeader('Cache-Control', 'no-store');
+        if (!res.writableEnded) res.status(404).json({ error: 'not found' });
+      }
+      return;
+    }
+    const ev = liveEvent(share, event, data);
+    if (ev) {
+      events.push(ev);
+      finish();
+    }
+  });
+  const timer = setTimeout(finish, wait);
+  req.on('close', finish);
+});
 
 async function start() {
   if (process.env.NODE_ENV !== 'production') {

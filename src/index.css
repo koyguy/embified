@@ -361,3 +361,48 @@ body {
 }
 .chat-head .back { display: none; background: none; border: 0; color: var(--text); font-size: 30px; line-height: 1; padding: 0 6px 4px 0; cursor: pointer; }
 @media (max-width: 760px) { .chat-head .back { display: block; } }
+
+.chat-head { height: auto; min-height: 60px; }
+.chat-head-copy { flex: 1; min-width: 0; }
+.chat-head-copy h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-head-search { margin-left: auto; min-width: 140px; max-width: 240px; width: 32%; }
+.chat-head-search input {
+  width: 100%;
+  border: 0;
+  background: var(--search);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.load-more {
+  align-self: center;
+  margin: 4px 0 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.load-more:disabled { opacity: 0.7; cursor: default; }
+.bubble .meta { align-items: center; }
+.share-wa {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+  margin-right: auto;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.bubble:hover .share-wa, .share-wa:focus-visible { opacity: 1; text-decoration: underline; }
+@media (max-width: 760px) {
+  .chat-head { flex-wrap: wrap; }
+  .chat-head-search { width: 100%; max-width: none; margin: 6px 0 4px; }
+  .share-wa { opacity: 0.9; }
+}
