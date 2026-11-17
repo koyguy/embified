@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import type { ChatMessage, GroupSummary, MediaAttachment, MediaKind } from '../src/types.ts';
+import * as lids from './lids.ts';
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
@@ -135,7 +136,22 @@ export function queryMessages(
     if (i >= 0) end = i;
   }
   const start = Math.max(0, end - limit);
-  return { messages: all.slice(start, end), hasMore: start > 0, hasNewer: end < all.length, total: all.length };
+  return {
+    messages: all.slice(start, end).map((m) => lids.resolveMessage(m)),
+    hasMore: start > 0,
+    hasNewer: end < all.length,
+    total: all.length,
+  };
+}
+
+/** Build lid/name associations from already-stored chats. Safe to call more than once. */
+export function seedLidMapFromStore() {
+  const ids = listGroupIdsWithChats();
+  const all: ChatMessage[] = [];
+  for (const id of ids) all.push(...loadMessages(id));
+  lids.learnFromStoredMessages(all);
+  lids.saveMap();
+  return lids.mapStats();
 }
 
 function saveMessages(groupId: string, messages: ChatMessage[]) {
