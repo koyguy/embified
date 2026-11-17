@@ -7,7 +7,7 @@
     "dev": "tsx server.ts",
     "start": "NODE_ENV=production tsx server.ts",
     "build": "vite build",
-    "test": "tsx --test server/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 server/*.test.ts",
     "share": "tsx server/share-cli.ts"
   },
   "dependencies": {

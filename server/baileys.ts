@@ -15,6 +15,7 @@ import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 import * as store from './store.ts';
+import * as lids from './lids.ts';
 import { emit, setStatus } from './bus.ts';
 import { markAwaitingLink, mergeHistoryBatch, readStamp, updateMediaStats } from './history.ts';
 import { readWaState, recordWaState } from './wa-state.ts';
@@ -155,6 +156,7 @@ async function handleIncoming(msg: any) {
     }
   }
 
+  lids.learnFromRawMessage(msg);
   const { from, authorName } = authorOf(msg);
   const saved: ChatMessage = store.appendMessage({
     id: msg.key?.id || `msg-${Date.now()}`,
@@ -168,10 +170,10 @@ async function handleIncoming(msg: any) {
     mediaUnavailable: mediaMeta && !media.length ? { kind: mediaMeta.kind, fileName: mediaMeta.fileName } : undefined,
   });
 
-  emit('message', saved);
+  emit('message', lids.resolveMessage(saved));
   emit('groups', store.listGroups());
   logger.info(
-    { group: groupName, author: authorName, preview: (text || `[${mediaMeta?.kind}]`).slice(0, 80) },
+    { group: groupName, author: lids.resolveMessage(saved).authorName, preview: (text || `[${mediaMeta?.kind}]`).slice(0, 80) },
     'saved group message'
   );
 }
@@ -216,6 +218,7 @@ export function historyRecord(msg: any): { record: ChatMessage | null; reason?: 
   const text = extractText(msg).trim();
   const media = detectMedia(msg);
   if (!text && !media) return { record: null, reason: 'empty' };
+  lids.learnFromRawMessage(msg);
   const { from, authorName } = authorOf(msg);
   return {
     record: {
@@ -234,7 +237,8 @@ export function historyRecord(msg: any): { record: ChatMessage | null; reason?: 
 }
 
 function handleHistorySet(payload: any) {
-  const { chats = [], messages = [], syncType, progress, isLatest } = payload || {};
+  const { chats = [], messages = [], contacts = [], syncType, progress, isLatest } = payload || {};
+  for (const c of contacts) lids.learnFromContact(c);
   const groupNames: Record<string, string> = {};
   for (const c of chats) {
     if (c?.id && isJidGroup(c.id) && (c.name || c.subject)) groupNames[c.id] = c.name || c.subject;
@@ -307,6 +311,7 @@ function handleHistorySet(payload: any) {
     emit('groups', store.listGroups());
     emit('history', { groups: res.touchedGroups, inserted: res.inserted.length });
   }
+  lids.saveMap();
 }
 
 /* ---------------- socket ---------------- */
@@ -322,7 +327,10 @@ async function syncGroups() {
         memberCount: g.participants?.length,
         kind: 'group',
       });
+      for (const p of g.participants || []) lids.learnFromContact(p);
     }
+    await lids.importFromBaileysLidMapping(sock);
+    lids.saveMap();
     emit('groups', store.listGroups());
   } catch (e: any) {
     logger.warn({ err: e?.message }, 'group sync failed');
@@ -446,8 +454,34 @@ export async function startBaileys() {
         memberCount: g.participants?.length,
         kind: 'group',
       });
+      for (const p of g.participants || []) lids.learnFromContact(p);
     }
+    lids.saveMap();
     emit('groups', store.listGroups());
+  });
+
+  sock.ev.on('groups.update', (groups: any[]) => {
+    if (stopped) return;
+    for (const g of groups || []) {
+      for (const p of g.participants || []) lids.learnFromContact(p);
+    }
+  });
+
+  sock.ev.on('contacts.upsert', (contacts: any[]) => {
+    if (stopped) return;
+    for (const c of contacts || []) lids.learnFromContact(c);
+    lids.saveMap();
+  });
+
+  sock.ev.on('contacts.update', (contacts: any[]) => {
+    if (stopped) return;
+    for (const c of contacts || []) lids.learnFromContact(c);
+  });
+
+  sock.ev.on('chats.phoneNumberShare', (ev: any) => {
+    if (stopped) return;
+    lids.learnFromPhoneShare(ev);
+    lids.saveMap();
   });
 }
 

@@ -391,6 +391,12 @@ app.get('/api/events/poll', (req, res) => {
 });
 
 async function start() {
+  try {
+    const stats = store.seedLidMapFromStore();
+    console.log('lid map seeded', stats);
+  } catch (e: any) {
+    console.warn('lid map seed failed', e?.message || e);
+  }
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true, allowedHosts: true },
